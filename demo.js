@@ -33,7 +33,6 @@ async function runTest() {
     });
 
     console.log('Session started successfully');
-
     await browser.activateApp('com.krishivaas');
 
     await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
@@ -68,40 +67,12 @@ async function runTest() {
     await findAndClick(browser, '(//android.widget.TextView[@text="--/--/----"])[1]');
     await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');
     await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Submit"]'); //submit in add crop
-    await findAndClick(browser, '//android.widget.TextView[@text="Draw on map"]');
-    // await findAndClick(browser, '//android.widget.ImageView'); // close icon in boundary popup
-
-    // Tap on screen to form boundary on map using provided coordinates
-    const coordinates = [
-      { x: 17.440366, y: 78.399144 },
-      { x: 17.440427, y: 78.399320 },
-      { x: 17.440253, y: 78.399393 },
-      { x: 17.440164, y: 78.399211 },
-      { x: 17.440366, y: 78.399144 }
-    ];
-
-    for (const coord of coordinates) {
-      await browser.performActions([
-        {
-          type: 'pointer',
-          id: 'finger1',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            { type: 'pointerMove', duration: 0, x: coord.x, y: coord.y },
-            { type: 'pointerDown' },
-            { type: 'pointerUp' },
-            { type: 'pause', duration: 500 }
-          ],
-        },
-      ]);
-    }
-
-    await findAndClick(browser, '//android.widget.Button[@text="Save & Approve"]');
+    await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
+    await findAndClick(browser, '//android.widget.ImageView');
     await new Promise(resolve => setTimeout(resolve, 30000));
     await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
     await findAndClick(browser, '//android.widget.TextView[@text="Edit Farm"]');
-    
+
     const element24 = await browser.$('//android.widget.EditText[@text="0"]');
     if (await element24.isExisting()) {
       console.log('Element 24 found');
