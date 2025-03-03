@@ -57,23 +57,23 @@ async function runTest() {
     await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
     await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]');
     await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[1]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[5]');
-    await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[5]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Select or Search Crop"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Bengal Gram"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Select Crop Duration"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Short (90 Days)"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Select Sowing Type"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Direct Sowing"]');
-    await findAndClick(browser, '(//android.widget.TextView[@text="--/--/----"])[1]');
-    await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');
-    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
+    await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[5]');//add farm button
+    await findAndClick(browser, '//android.widget.TextView[@text="Select or Search Crop"]');//select crop dropdown
+    await findAndClick(browser, '//android.widget.TextView[@text="Bengal Gram"]');//selecting crop in add crop
+    await findAndClick(browser, '//android.widget.TextView[@text="Select Crop Duration"]');//crop duration dropdown
+    await findAndClick(browser, '//android.widget.TextView[@text="Short (90 Days)"]');//short duration option in dropdown
+    await findAndClick(browser, '//android.widget.TextView[@text="Select Sowing Type"]');//sowing type dropdown
+    await findAndClick(browser, '//android.widget.TextView[@text="Direct Sowing"]');//direct sowing option in dropdown
+    await findAndClick(browser, '(//android.widget.TextView[@text="--/--/----"])[1]');//sowing date field
+    await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');//selecting date in calendar
+    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
+    await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');//submit button in add crop
     await findAndClick(browser, '//android.widget.ImageView');
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
     await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
-    await findAndClick(browser, '//android.widget.TextView[@text="Edit Farm"]');
+    await findAndClick(browser, '//android.widget.TextView[@text="Edit Farm"]');//edit farm button in three dots
 
-    const element24 = await browser.$('//android.widget.EditText[@text="0"]');
+    const element24 = await browser.$('//android.widget.EditText[@text="0"]');//acre field in edit farm
     if (await element24.isExisting()) {
       console.log('Element 24 found');
       await element24.waitForExist({ timeout: 7000 });
@@ -83,19 +83,19 @@ async function runTest() {
       console.error('Element 24 not found');
     }
 
-    await findAndClick(browser, '//android.widget.TextView[@text="Update"]');
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await findAndClick(browser, '//android.widget.TextView[@text="Update"]');//updtae button in edit farm
+    await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
     await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
-    await findAndClick(browser, '//android.widget.TextView[@text="Edit Crop"]');
+    await findAndClick(browser, '//android.widget.TextView[@text="Edit Crop"]')//edit crop button in three dots;
     await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[5]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Transplanted"]');
+    await findAndClick(browser, '//android.widget.TextView[@text="Transplanted"]');//transplanted option in dropdown in edit crop
     await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[6]');
-    await findAndClick(browser, '//android.view.View[@content-desc="10 February 2025"]');
-    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');
+    await findAndClick(browser, '//android.view.View[@content-desc="15 March 2025"]');//selecting date in calendar
+    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
     await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[7]');
-    await findAndClick(browser, '//android.view.View[@content-desc="01 February 2025"]');
-    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');
-    await findAndClick(browser, '//android.widget.TextView[@text="Update"]');
+    await findAndClick(browser, '//android.view.View[@content-desc="01 March 2025"]');//selecting date in calendar
+    await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
+    await findAndClick(browser, '//android.widget.TextView[@text="Update"]');// update button in edit crop
 
     console.log('Test completed successfully');
   } catch (error) {
