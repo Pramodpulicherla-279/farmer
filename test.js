@@ -47,12 +47,41 @@ async function login(browser) {
   await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
 }
 
-// add farm and crop
+async function addFarmIcon(browser) {
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[1]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[5]');//add farm icon in my farms
+}
+//my farms button in dashboard
+async function myfarmsButton(browser) {
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]');//my farms button in dashboard
+}
+//add farm button in my farms
 async function addFarm(browser) {
   await new Promise(resolve => setTimeout(resolve, 10000));
-  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]');//my farms button in dashboard
-  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[1]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[5]');//add farm icon in my farms
   await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[5]');//submit button in add farm
+}
+//three dots of crop in farms
+async function threeDots1(browser){
+  await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
+}
+//three dots of without crop in farms
+async function threeDots2(browser){
+  await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
+}
+//close icon in add boundary popup
+async function closeIcon(browser){
+  await findAndClick(browser, '//android.widget.ImageView');
+}
+//skip crop button in add crop
+async function skipCrop(browser){
+  await findAndClick(browser, '//android.widget.TextView[@text="Skip"]');
+}
+//cancel button in add crop
+async function cancelButton(browser){
+  await findAndClick(browser, '//android.widget.TextView[@text="Cancel"]');
+}
+//add crop button in three dots
+async function addCropButton(browser){
+  await findAndClick(browser, '//android.widget.TextView[@text="Add Crop"]')
 }
 
 async function addCrop(browser) {
@@ -66,7 +95,6 @@ async function addCrop(browser) {
   await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');//selecting date in calendar
   await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
   await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');//submit button in add crop
-  // await findAndClick(browser, '//android.widget.ImageView');//close icon in add boundary popup
 }
 
 async function tapOnScreen(browser, coordinates) {
@@ -191,46 +219,141 @@ describe('REGULAR FARMER APP TEST REPORT', function() {
     await browser.activateApp('com.krishivaas');
   });
 
-  // after(async function() {
-  //   await browser.deleteSession();
-  // });
+  describe('TC-1 : Permissions > Login', function() {
+    it('Allow Permissions', async function() {
+      await allowPermissions(browser);
+    });
 
-  it('Allow Permissions', async function() {
-    await allowPermissions(browser);
+    it('Login', async function() {
+      await login(browser);
+    });
   });
 
-  it('Login', async function() {
-    await login(browser);
+  describe('TC-2 : My farms > Add farm > Add crop > Add Boundary', function() {
+    it('My Farms', async function() {
+      await myfarmsButton(browser);
+    });
+
+    it('Add Farm Icon', async function() {
+      await addFarmIcon(browser);
+    });
+    it('Add Farm', async function() {
+      await addFarm(browser);
+    });
+  
+    it('Add Crop', async function() {
+      await addCrop(browser);
+    });
+  
+    it('Add Boundary - Draw On Map', async function() {
+      const coordinates = [
+        { x: 390, y: 760 },  // Top-left corner of the box
+        { x: 690, y: 760 },  // Top-right corner of the box
+        { x: 690, y: 1160 }, // Bottom-right corner of the box
+        { x: 390, y: 1160 }, // Bottom-left corner of the box
+        { x: 390, y: 760 },   // Closing the box (back to top-left)
+        { x: 390, y: 760 }   // Closing the box (back to top-left)
+  
+      ];
+      await tapOnScreen(browser, coordinates);
+    });
   });
 
-  it('Add Farm', async function() {
-    await addFarm(browser);
+  describe('TC-3 : Add farm > Add crop > Add Boundary > Edit farm > Edit Crop', function() {
+    it('Add Farm Icon', async function() {
+      await addFarmIcon(browser);
+    });
+    it('Add Farm', async function() {
+      await addFarm(browser);
+    });
+  
+    it('Add Crop', async function() {
+      await addCrop(browser);
+    });
+  
+    it('Add Boundary - Draw On Map', async function() {
+      const coordinates = [
+        { x: 390, y: 760 },  // Top-left corner of the box
+        { x: 690, y: 760 },  // Top-right corner of the box
+        { x: 690, y: 1160 }, // Bottom-right corner of the box
+        { x: 390, y: 1160 }, // Bottom-left corner of the box
+        { x: 390, y: 760 },   // Closing the box (back to top-left)
+        { x: 390, y: 760 }   // Closing the box (back to top-left)
+  
+      ];
+      await tapOnScreen(browser, coordinates);
+    });
+  
+    it('Edit Farm', async function() {
+      await editFarm(browser);
+    });
+  
+    it('Edit Crop', async function() {
+      await editCrop(browser);
+    });
   });
 
-  it('Add Crop', async function() {
-    await addCrop(browser);
+  describe('TC-4 : Plus icon > Add farm > Skip crop > Add Boundary', function() {
+    it('Add Farm Icon', async function() {
+      await addFarmIcon(browser);
+    });
+    it('Add Farm', async function() {
+      await addFarm(browser);
+    });
+    it('Skip Crop', async function() {
+      await skipCrop(browser);
+    });
+    it('Add Boundary - Draw On Map', async function() {
+      const coordinates = [
+        { x: 390, y: 760 },  // Top-left corner of the box
+        { x: 690, y: 760 },  // Top-right corner of the box
+        { x: 690, y: 1160 }, // Bottom-right corner of the box
+        { x: 390, y: 1160 }, // Bottom-left corner of the box
+        { x: 390, y: 760 },   // Closing the box (back to top-left)
+        { x: 390, y: 760 }   // Closing the box (back to top-left)
+  
+      ];
+      await tapOnScreen(browser, coordinates);
+    });
+  });
+  describe('TC-5 : Plus Icon > Add Farm', function() {
+    it('Add Farm Icon', async function() {
+      await addFarmIcon(browser);
+    });
+    it('Add Farm', async function() {
+      await addFarm(browser);
+    });
+    it('cancel button', async function() {
+      await cancelButton(browser);
+    });
   });
 
-  it('Add Boundary - Draw On Map', async function() {
-    const coordinates = [
-      { x: 390, y: 760 },  // Top-left corner of the box
-      { x: 690, y: 760 },  // Top-right corner of the box
-      { x: 690, y: 1160 }, // Bottom-right corner of the box
-      { x: 390, y: 1160 }, // Bottom-left corner of the box
-      { x: 390, y: 760 },   // Closing the box (back to top-left)
-      { x: 390, y: 760 }   // Closing the box (back to top-left)
-
-    ];
-    await tapOnScreen(browser, coordinates);
+  describe('TC-6 : Three dots > Add crop > Add Boundary', function() {
+    it('Three Dots', async function() {
+      await threeDots2(browser);
+    });
+    it('Add Crop Button', async function() {
+      await addCropButton(browser);
+    });
+    it('Add Crop', async function() {
+      await addCrop(browser);
+    });
+    it('Add Boundary - Draw On Map', async function() {
+      const coordinates = [
+        { x: 390, y: 760 },  // Top-left corner of the box
+        { x: 690, y: 760 },  // Top-right corner of the box
+        { x: 690, y: 1160 }, // Bottom-right corner of the box
+        { x: 390, y: 1160 }, // Bottom-left corner of the box
+        { x: 390, y: 760 },   // Closing the box (back to top-left)
+        { x: 390, y: 760 }   // Closing the box (back to top-left)
+  
+      ];
+      await tapOnScreen(browser, coordinates);
+    });
   });
+  
 
-  it('Edit Farm', async function() {
-    await editFarm(browser);
-  });
 
-  it('Edit Crop', async function() {
-    await editCrop(browser);
-  });
 
   // it('Edit Boundary', async function() {
   //   await editBoundary(browser);
@@ -238,3 +361,5 @@ describe('REGULAR FARMER APP TEST REPORT', function() {
 
 
 });
+//
+//
