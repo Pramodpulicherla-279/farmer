@@ -351,15 +351,5 @@ describe('REGULAR FARMER APP TEST REPORT', function() {
       await tapOnScreen(browser, coordinates);
     });
   });
-  
-
-
-
-  // it('Edit Boundary', async function() {
-  //   await editBoundary(browser);
-  // });
-
-
 });
-//
-//
+
