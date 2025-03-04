@@ -1,0 +1,257 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 8,
+    "passes": 7,
+    "pending": 0,
+    "failures": 1,
+    "start": "2025-03-04T09:40:54.236Z",
+    "end": "2025-03-04T09:45:06.299Z",
+    "duration": 252063,
+    "testsRegistered": 8,
+    "passPercent": 87.5,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "200c82c5-8489-4b3e-b655-d887edcaa99b",
+      "title": "",
+      "fullFile": "C:\\Users\\Pramo\\farmer\\test.js",
+      "file": "\\test.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+          "title": "REGULAR FARMER APP TEST REPORT",
+          "fullFile": "C:\\Users\\Pramo\\farmer\\test.js",
+          "file": "\\test.js",
+          "beforeHooks": [
+            {
+              "title": "\"before all\" hook in \"REGULAR FARMER APP TEST REPORT\"",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT \"before all\" hook in \"REGULAR FARMER APP TEST REPORT\"",
+              "timedOut": false,
+              "duration": 7381,
+              "state": null,
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "browser = await webdriverio.remote({\n  hostname: 'localhost',\n  port: 4723,\n  path: '/',\n  capabilities\n});\nawait browser.activateApp('com.krishivaas');",
+              "err": {},
+              "uuid": "9737c046-4eb1-4e80-8f9a-a66c4980ac9d",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": true,
+              "skipped": false
+            }
+          ],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "Allow Permissions",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Allow Permissions",
+              "timedOut": false,
+              "duration": 6897,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await allowPermissions(browser);",
+              "err": {},
+              "uuid": "dc2acf31-f944-4ac8-bbf8-1220278ca7c7",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Login",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Login",
+              "timedOut": false,
+              "duration": 59993,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await login(browser);",
+              "err": {},
+              "uuid": "80b7d801-fc93-4814-a217-949ce8bb97db",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Add Farm",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Add Farm",
+              "timedOut": false,
+              "duration": 21622,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await addFarm(browser);",
+              "err": {},
+              "uuid": "5e4a0efb-a327-40ed-aeb1-627571a400f7",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Add Crop",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Add Crop",
+              "timedOut": false,
+              "duration": 20432,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await addCrop(browser);",
+              "err": {},
+              "uuid": "c5ae99de-43f7-4f7d-918e-e25b8a7177f3",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Add Boundary - Draw On Map",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Add Boundary - Draw On Map",
+              "timedOut": false,
+              "duration": 22840,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const coordinates = [\n  { x: 390, y: 760 },  // Top-left corner of the box\n  { x: 690, y: 760 },  // Top-right corner of the box\n  { x: 690, y: 1160 }, // Bottom-right corner of the box\n  { x: 390, y: 1160 }, // Bottom-left corner of the box\n  { x: 390, y: 760 },   // Closing the box (back to top-left)\n  { x: 390, y: 760 }   // Closing the box (back to top-left)\n];\nawait tapOnScreen(browser, coordinates);",
+              "err": {},
+              "uuid": "e4de3937-85f2-4273-bd6b-4f7690d8417b",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Edit Farm",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Edit Farm",
+              "timedOut": false,
+              "duration": 73693,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await editFarm(browser);",
+              "err": {},
+              "uuid": "a4993467-6df9-401d-9653-cc766111e611",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Edit Crop",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Edit Crop",
+              "timedOut": false,
+              "duration": 18929,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await editCrop(browser);",
+              "err": {},
+              "uuid": "7d12e31c-1ebe-43c5-b39f-51da85a4a4b7",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "Edit Boundary",
+              "fullTitle": "REGULAR FARMER APP TEST REPORT Edit Boundary",
+              "timedOut": false,
+              "duration": 20258,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "await editBoundary(browser);",
+              "err": {
+                "message": "ReferenceError: coordinates is not defined",
+                "estack": "ReferenceError: coordinates is not defined\n    at editBoundary (test.js:160:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async Context.<anonymous> (test.js:241:5)",
+                "diff": null
+              },
+              "uuid": "efdadf31-7fc8-4b39-8547-ecc6927599de",
+              "parentUUID": "b46b4a69-33a5-4457-92cc-dcaff068244b",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "dc2acf31-f944-4ac8-bbf8-1220278ca7c7",
+            "80b7d801-fc93-4814-a217-949ce8bb97db",
+            "5e4a0efb-a327-40ed-aeb1-627571a400f7",
+            "c5ae99de-43f7-4f7d-918e-e25b8a7177f3",
+            "e4de3937-85f2-4273-bd6b-4f7690d8417b",
+            "a4993467-6df9-401d-9653-cc766111e611",
+            "7d12e31c-1ebe-43c5-b39f-51da85a4a4b7"
+          ],
+          "failures": [
+            "efdadf31-7fc8-4b39-8547-ecc6927599de"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 244664,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 600000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "11.1.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "mochawesome",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.3"
+    },
+    "marge": {
+      "options": null,
+      "version": "6.2.0"
+    }
+  }
+}
