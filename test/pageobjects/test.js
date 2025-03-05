@@ -75,6 +75,18 @@ async function cancelButton(browser){
 async function addCropButton(browser){
   await findAndClick(browser, '//android.widget.TextView[@text="Add Crop"]')
 }
+//add boundary button in three dots
+async function addBoundaryButton(browser){
+  await findAndClick(browser, '//android.widget.TextView[@text="Add Boundary"]')
+}
+//andoid back
+async function androidBack(browser) {
+  await browser.back();
+}
+//add farm button in dashboard
+async function addFarmButton(browser) {
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]');//add farm button in dashboard
+}
 
 async function addCrop(browser) {
   await findAndClick(browser, '//android.widget.TextView[@text="Select or Search Crop"]');//select crop dropdown
@@ -112,7 +124,6 @@ async function tapOnScreen(browser, coordinates) {
 
 async function editFarm(browser) {
   await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
-  await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
   await findAndClick(browser, '//android.widget.TextView[@text="Edit Farm"]');//edit farm button in three dots
   await new Promise(resolve => setTimeout(resolve, 5000));//waiting for 30 seconds
   const element24 = await browser.$('//android.widget.EditText[@text="0"]');//acre field in edit farm
@@ -142,7 +153,7 @@ async function editCrop(browser) {
   await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
   await findAndClick(browser, '//android.widget.TextView[@text="Update"]');//update button in edit crop
 }
-
+//edit boundary is not working
 async function editBoundary(browser) {
   await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');//three dots in farms
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]');  //edit boundary in three dots
@@ -213,6 +224,9 @@ module.exports = {
   tapOnScreen,
   editFarm,
   editCrop,
-  editBoundary
+  editBoundary,
+  addBoundaryButton,
+  androidBack,
+  addFarmButton
 };
 

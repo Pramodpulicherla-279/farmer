@@ -2,7 +2,8 @@ exports.config = {
     runner: 'local',
     port: 57090, // Match the Appium service port
     specs: [
-        './test/specs/*.e2e.js'
+        './test/specs/*.e2e.js',
+        './test/specs/*.pop.ts'
     ],
     exclude: [],
     maxInstances: 10,
