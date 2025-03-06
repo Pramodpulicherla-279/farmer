@@ -1,10 +1,10 @@
 const { findAndClick, allowPermissions, login, addFarmIcon, myfarmsButton, addFarm, threeDots1, threeDots2, closeIcon, skipCrop, cancelButton, addCropButton, addCrop, tapOnScreen, editFarm, editCrop, editBoundary, addBoundaryButton, androidBack, addFarmButton, popCalendar } = require('../pageobjects/test');
 
-before(async function() {
-    this.timeout(600000); // Set timeout to 10 minutes
-    await browser.activateApp('com.krishivaas');
-    console.log('App activated successfully');
-});
+// before(async function() {
+//     this.timeout(600000); // Set timeout to 10 minutes
+//     await browser.activateApp('com.krishivaas');
+//     console.log('App activated successfully');
+// });
 describe('TC-1 : Permissions > Login', function() {
     it('Allow Permissions', async function() {
         await allowPermissions(browser);
@@ -58,6 +58,9 @@ describe('TC-3 : Plus Icon > Add farm > Add crop > Add Boundary > Edit farm > Ed
             { x: 390, y: 760 }   // Closing the box (back to top-left)
         ];
         await tapOnScreen(browser, coordinates);
+    });
+    it('Three Dots', async function() {
+        await threeDots1(browser);
     });
     it('Edit Farm', async function() {
         await editFarm(browser);
@@ -137,6 +140,7 @@ describe('TC-7 : Add farm > cancel crop > Three dots > Skip Crop > Add boundary'
     it('Add Crop', async function() {
         await addCropButton(browser);
     });
+    //need to add time
     it('Skip Crop', async function() {
         await skipCrop(browser);
     });
@@ -186,10 +190,19 @@ describe('TC-9 : Add farm > cancel crop > Three dots > Add boundary', function()
         await cancelButton(browser);
     });
     it('Three Dots', async function() {
-        await threeDots1(browser);
+        await threeDots2(browser);
     });
     it('Add Boundary - Draw On Map', async function() {
         await addBoundaryButton(browser);
+        const coordinates = [
+            { x: 390, y: 760 },  // Top-left corner of the box
+            { x: 690, y: 760 },  // Top-right corner of the box
+            { x: 690, y: 1160 }, // Bottom-right corner of the box
+            { x: 390, y: 1160 }, // Bottom-left corner of the box
+            { x: 390, y: 760 },   // Closing the box (back to top-left)
+            { x: 390, y: 760 }   // Closing the box (back to top-left)
+        ];
+        await tapOnScreen(browser, coordinates);
     });
 });
 describe('TC-10 : Dashboard > Add farm', function() {
@@ -264,6 +277,9 @@ describe('TC-12 : Dashboard > Add farm > Skip crop > Add Boundary > Edit farm > 
     it('three dots', async function() {
         await threeDots2(browser);
     });
+    it('add crop button', async function() {
+        await addCropButton(browser);
+    });
     it('Add Crop', async function() {
         await addCrop(browser);
     });
@@ -295,9 +311,14 @@ describe('TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots >
     });
     it('Add Boundary', async function() {
         await addBoundaryButton(browser);
+        const coordinates = [
+            { x: 390, y: 760 },  // Top-left corner of the box
+            { x: 690, y: 760 },  // Top-right corner of the box
+            { x: 690, y: 1160 }, // Bottom-right corner of the box
+            { x: 390, y: 1160 }, // Bottom-left corner of the box
+            { x: 390, y: 760 },   // Closing the box (back to top-left)
+            { x: 390, y: 760 }   // Closing the box (back to top-left)
+        ];
+        await tapOnScreen(browser, coordinates);    
     });
 });
-
-
-
-

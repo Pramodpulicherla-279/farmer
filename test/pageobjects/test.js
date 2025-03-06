@@ -1,7 +1,7 @@
 // // filepath: /c:/Users/Pramo/farmer/test.js
 // const webdriverio = require('webdriverio');
 // // const { expect } = require('chai');
-
+const { addStep } = require('@wdio/allure-reporter').default;
 
 async function findAndClick(browser, selector, timeout = 7000) {
   const element = await browser.$(selector);
@@ -11,6 +11,7 @@ async function findAndClick(browser, selector, timeout = 7000) {
     await element.click();
   } else {
     console.error(`Element not found: ${selector}`);
+    addStep(`Element not found: ${selector}`, {}, 'failed');
   }
 }
 
@@ -34,7 +35,7 @@ async function login(browser) {
   }
 
   await findAndClick(browser, '//android.widget.TextView[@text="Login"]');
-  await new Promise(resolve => setTimeout(resolve, 50000));
+  await new Promise(resolve => setTimeout(resolve, 80000));
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]');//Clicking on the screen to dissappear the keyword
   await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
 }
@@ -53,10 +54,12 @@ async function addFarm(browser) {
 }
 //three dots of crop in farms
 async function threeDots1(browser){
+  await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
   await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
 }
 //three dots of without crop in farms
 async function threeDots2(browser){
+  await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
   await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
 }
 //close icon in add boundary popup
@@ -69,6 +72,7 @@ async function skipCrop(browser){
 }
 //cancel button in add crop
 async function cancelButton(browser){
+  await new Promise(resolve => setTimeout(resolve, 10000));
   await findAndClick(browser, '//android.widget.TextView[@text="Cancel"]');
 }
 //add crop button in three dots
@@ -123,7 +127,6 @@ async function tapOnScreen(browser, coordinates) {
 }
 
 async function editFarm(browser) {
-  await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
   await findAndClick(browser, '//android.widget.TextView[@text="Edit Farm"]');//edit farm button in three dots
   await new Promise(resolve => setTimeout(resolve, 5000));//waiting for 30 seconds
   const element24 = await browser.$('//android.widget.EditText[@text="0"]');//acre field in edit farm
@@ -230,3 +233,6 @@ module.exports = {
   addFarmButton
 };
 
+//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView
+//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView
+//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView

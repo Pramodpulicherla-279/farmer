@@ -6,6 +6,7 @@ async function findAndClick(browser, selector, timeout = 7000) {
       await element.click();
     } else {
       console.error(`Element not found: ${selector}`);
+      addStep(`Element not found: ${selector}`, {}, 'failed');
     }
   }
 //pop calendar iconn in my farms
@@ -55,7 +56,6 @@ async function generalRemarks(browser, text) {
     } else {
       console.error('General remarks text box not found');
     }
-    await generalRemarks(browser, 'This is a general remark.');
 }
 //general remarks audio for start and stop
 async function generalRemarksAudio(browser) {
