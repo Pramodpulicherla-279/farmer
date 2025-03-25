@@ -26,7 +26,7 @@ jobs:
       - name: Install npm packages
         run: npm install
 
-      # Firebase CLI Setup
+      # Install Firebase CLI
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
@@ -43,27 +43,40 @@ jobs:
           ./gradlew assembleDebug
           ./gradlew assembleAndroidTest
 
-      # Upload APK to Firebase Test Lab
-      - name: Run Tests on Firebase Test Lab
+      # Run Firebase Test Lab Tests
+      - name: Run Firebase Test Lab
         run: |
           gcloud firebase test android run \
-            --type instrumentation \
             --app app/build/outputs/apk/debug/app-debug.apk \
             --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-            --device model=Pixel5,version=33,locale=en,orientation=portrait
+            --device model=Pixel6,version=34,locale=en,orientation=portrait \
+            --results-dir=allure-results
 
-      # Fetch Test Results
-      - name: Fetch Firebase Test Lab Results
+      # Install Allure CLI
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
+
+      # Generate Allure Report
+      - name: Generate Allure Report
         if: always()
         run: |
-          gsutil -m cp -r "$(gcloud firebase test android list-results)" ./firebase-results
+          allure generate allure-results -o allure-report --clean
 
-      # Upload Test Results as Artifact
-      - name: Upload Test Results
+      # Upload Allure Report as Artifact
+      - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
-          name: firebase-test-results
-          path: ./firebase-results
+          name: allure-report
+          path: ./allure-report
+
+      # Deploy Allure Report to GitHub Pages
+      - name: Deploy Allure Report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          keep_files: true
 
       # Cleanup
       - name: Clean Up
