@@ -1,0 +1,8 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","13527","Add farm button in dashboard","","Tue Mar 25 17:06:46 IST 2025","broken","Tue Mar 25 17:06:59 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","32515","Three Dots","","Tue Mar 25 17:07:16 IST 2025","broken","Tue Mar 25 17:07:48 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","12363","Add Farm","","Tue Mar 25 17:06:59 IST 2025","broken","Tue Mar 25 17:07:12 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","2743","Add Crop","","Tue Mar 25 17:07:12 IST 2025","broken","Tue Mar 25 17:07:14 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","1434","close icon","","Tue Mar 25 17:07:14 IST 2025","passed","Tue Mar 25 17:07:16 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","10181","Android back","","Tue Mar 25 17:06:36 IST 2025","passed","Tue Mar 25 17:06:46 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
+"","2413","Add Boundary","","Tue Mar 25 17:07:48 IST 2025","broken","Tue Mar 25 17:07:51 IST 2025","","TC-13 : Dashboard > Add farm > Add Crop > Skip Boundary > Three dots > Add boundary","",""
