@@ -4,48 +4,34 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Prevent hanging jobs
     steps:
       - uses: actions/checkout@v4
 
-      # Java Setup
-      - name: Set up JDK 17 (for Android SDK)
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up JDK 11 (for tests)
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '11'
+      - name: Set up Android SDK
+        run: |
+          # Install required components
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
 
-      # Node Setup
+      # Rest of your workflow remains the same...
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Dependencies
       - name: Install dependencies
         run: npm install
 
       - name: Install Allure CLI
         run: npm install -g allure-commandline
-
-      # Android Environment
-      - name: Set up Android SDK
-        run: |
-            # Install required SDK components
-            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator"
-            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-            echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-            echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
-
-      # Emulator Setup
-      - name: Reset ADB Server
-        run: adb kill-server
 
       - name: Start Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -55,28 +41,19 @@ jobs:
           profile: Nexus 6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          emulator-boot-timeout: 900  # Increased timeout
+          emulator-boot-timeout: 600
           script: echo "Emulator setup complete"
 
-      # Emulator Readiness
       - name: Wait for Emulator
         run: |
           adb wait-for-device
-          adb shell input keyevent 82  # Wake screen
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
+          adb shell input keyevent 82
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
-          adb devices  # Verify connection
 
-      # Test Execution
       - name: Run tests
-        timeout-minutes: 15
         run: npx wdio run wdio.conf.js
 
-      # Reporting
       - name: Generate Allure Report
-        if: always()  # Generate report even if tests fail
         run: |
           allure generate allure-results -o allure-report --clean
 
@@ -85,4 +62,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
-          keep_files: true  # Preserve history
