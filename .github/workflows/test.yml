@@ -4,7 +4,7 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45  # Increased overall timeout
     steps:
       - uses: actions/checkout@v4
 
@@ -15,13 +15,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Android SDK Setup
-      - name: Set up Android Environment
+      # Android Setup - More reliable method
+      - name: Set up Android SDK
         run: |
           mkdir -p $ANDROID_HOME/licenses
-          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator" "build-tools;34.0.0" "platforms;android-34"
+          echo -e "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+          echo -e "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
+          
+          # Install specific working versions
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install \
+            "platform-tools" \
+            "emulator" \
+            "platforms;android-33" \
+            "build-tools;33.0.1" \
+            "system-images;android-33;google_apis;x86_64"
+          
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
 
@@ -38,56 +46,70 @@ jobs:
       - name: Install Allure CLI
         run: npm install -g allure-commandline
 
-      # Emulator Setup
-      - name: Reset ADB Server
+      # Emulator Setup - Enhanced reliability
+      - name: Prepare ADB Connection
         run: |
           adb kill-server
           sleep 5
           adb start-server
           sleep 5
+          adb devices
 
-      - name: Start Android Emulator
+      - name: Launch Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34  # More stable than API 30
+          api-level: 33  # More stable than API 30
           arch: x86_64
-          profile: Nexus 6
+          profile: pixel_5  # More reliable profile
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-accel
           disable-animations: true
-          emulator-boot-timeout: 1200  # 20 minutes
-          script: echo "Emulator setup complete"
+          emulator-boot-timeout: 1800  # 30 minutes
+          script: echo "Starting emulator..."
 
-      # Enhanced Emulator Readiness Check
-      - name: Wait for Emulator
+      # Robust Connection Handling
+      - name: Establish Stable Connection
         timeout-minutes: 10
         run: |
-          # Wait for emulator process
-          until adb devices | grep -q "emulator-.*device$"; do
-            echo "Emulator not yet connected..."
+          # Connection retry loop
+          for i in {1..10}; do
             adb kill-server
             adb start-server
+            sleep 5
+            
+            if adb devices | grep -q "emulator-.*device"; then
+              echo "Connection established"
+              break
+            fi
+            
+            echo "Retry $i/10 - Waiting for connection..."
             sleep 10
           done
 
-          # Extra stabilization wait
-          sleep 20
+          # Verify connection
+          if ! adb devices | grep -q "emulator-.*device"; then
+            echo "::error::Failed to establish ADB connection"
+            exit 1
+          fi
 
-          # Unlock and prepare device
+          # Device preparation
           adb shell input keyevent 82
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
-          
-          # Final boot verification
-          adb wait-for-device
-          until adb shell getprop sys.boot_completed | grep -q "1"; do
-            echo "Waiting for boot completion..."
+
+          # Wait for full boot
+          for i in {1..30}; do
+            if adb shell getprop sys.boot_completed | grep -q "1"; then
+              echo "Boot completed"
+              break
+            fi
+            echo "Waiting for boot completion ($i/30)..."
             sleep 10
           done
 
-          # Health check
-          adb shell pm list packages
-          echo "Emulator fully ready!"
+          # Final verification
+          adb shell pm list packages > /dev/null
+          echo "Emulator ready for testing"
 
       # Test Execution
       - name: Run tests
