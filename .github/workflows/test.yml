@@ -7,11 +7,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK (for Android)
+      # Java 17 for Android SDK tools (required)
+      - name: Set up JDK 17 (for Android SDK)
         uses: actions/setup-java@v3
         with:
-           distribution: 'temurin'
-           java-version: '11'
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Java 11 for test execution (if your tests need it)
+      - name: Set up JDK 11 (for tests)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,10 +38,15 @@ jobs:
           api-level: 30
           arch: x86_64
           profile: Nexus 6
-          script: echo "Emulator started"
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          emulator-boot-timeout: 600
 
       - name: Wait for Emulator to Boot
-        run: adb wait-for-device
+        run: |
+          adb wait-for-device
+          adb shell input keyevent 82  # Wake up screen
+          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
 
       - name: Run tests
         run: npx wdio run wdio.conf.js
