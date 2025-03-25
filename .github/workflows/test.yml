@@ -16,151 +16,56 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Android Environment Setup
-      - name: Configure Android SDK
-        run: |
-          mkdir -p $ANDROID_HOME/licenses
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > $ANDROID_HOME/licenses/android-sdk-license
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install \
-            "platform-tools" "emulator" "platforms;android-33" \
-            "build-tools;33.0.1" "system-images;android-33;google_apis;x86_64"
-
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
-
       # Node Environment
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Dependencies
+      # Install Dependencies
       - name: Install npm packages
         run: npm install
 
-      - name: Install Allure CLI
-        run: npm install -g allure-commandline
+      # Firebase CLI Setup
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
 
-      # ADB Setup
-      - name: Initialize ADB Environment
-        timeout-minutes: 5
+      # Authenticate with Firebase
+      - name: Authenticate with Firebase
         run: |
-          # Clean up any existing processes
-          pkill -9 adb || true
-          rm -rf ~/.android/adb* >/dev/null 2>&1
-          
-          # Initialize ADB
-          adb start-server
-          sleep 10
-          adb devices
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
+          gcloud auth activate-service-account --key-file=firebase-service-account.json
+          gcloud config set project <YOUR_FIREBASE_PROJECT_ID>
 
-      # Emulator Launch
-      - name: Launch Android Emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          arch: x86_64
-          profile: pixel_5
-          emulator-options: >-
-            -no-window
-            -gpu swiftshader_indirect
-            -no-snapshot
-            -noaudio
-            -no-boot-anim
-            -no-accel
-            -read-only
-            -netdelay none
-            -netspeed full
-          disable-animations: true
-          emulator-boot-timeout: 60000  # 60 minutes
-          script: echo "Starting emulator..."
-
-      # Connection Handling
-      - name: Establish ADB Connection
-        timeout-minutes: 20
+      # Build APK for Testing
+      - name: Build Debug APK
         run: |
-          # Function to check connection
-          check_connection() {
-            adb kill-server
-            sleep 5
-            adb start-server
-            sleep 10
-            
-            if adb devices | grep -q "emulator-.*device"; then
-              echo "Connection verified"
-              return 0
-            fi
-            return 1
-          }
+          ./gradlew assembleDebug
+          ./gradlew assembleAndroidTest
 
-          # Main retry loop
-          max_attempts=20
-          attempt=1
-          
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt/$max_attempts"
-            
-            if check_connection; then
-              # Additional verification
-              if adb shell getprop sys.boot_completed | grep -q "1"; then
-                echo "Emulator fully ready"
-                exit 0
-              else
-                echo "Connected but not fully booted"
-              fi
-            else
-              echo "Connection failed, retrying..."
-            fi
-            
-            # Exponential backoff
-            sleep_time=$((5 * attempt))
-            echo "Waiting $sleep_time seconds before next attempt..."
-            sleep $sleep_time
-            
-            ((attempt++))
-          done
-
-          echo "::error::Failed to establish stable ADB connection after $max_attempts attempts"
-          echo "::group::Debug Information"
-          adb devices
-          adb shell getprop
-          ps aux | grep adb
-          echo "::endgroup::"
-          exit 1
-
-      # Device Preparation
-      - name: Prepare Emulator
+      # Upload APK to Firebase Test Lab
+      - name: Run Tests on Firebase Test Lab
         run: |
-          adb shell input keyevent 82
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
-          adb shell pm list packages >/dev/null
-          echo "Device prepared for testing"
+          gcloud firebase test android run \
+            --type instrumentation \
+            --app app/build/outputs/apk/debug/app-debug.apk \
+            --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            --device model=Pixel5,version=33,locale=en,orientation=portrait
 
-      # Test Execution
-      - name: Run UI Tests
-        timeout-minutes: 30
-        run: npx wdio run wdio.conf.js
-
-      # Test Reporting
-      - name: Generate Allure Report
+      # Fetch Test Results
+      - name: Fetch Firebase Test Lab Results
         if: always()
         run: |
-          allure generate allure-results -o allure-report --clean
+          gsutil -m cp -r "$(gcloud firebase test android list-results)" ./firebase-results
 
-      - name: Deploy Test Report
-        uses: peaceiris/actions-gh-pages@v3
+      # Upload Test Results as Artifact
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
-          keep_files: true
+          name: firebase-test-results
+          path: ./firebase-results
 
-      # Terminate Emulator
-      - name: Terminate Emulator
+      # Cleanup
+      - name: Clean Up
         if: always()
-        run: |
-          adb -s emulator-5554 emu kill || true
-          echo "Emulator terminated successfully"
+        run: rm -f firebase-service-account.json
