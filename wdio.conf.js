@@ -1,9 +1,13 @@
+const fs = require('fs');
+const path = require('path');
+
 exports.config = {
     runner: 'local',
     port: 57090, // Match the Appium service port
     specs: [
+        // './test/specs/loginTest.js',
         './test/specs/onboardingTest.js',
-        './test/specs/popTest.js'
+        // './test/specs/popTest.js'
     ],
     exclude: [],
     maxInstances: 1,
@@ -30,6 +34,13 @@ exports.config = {
     ],
     framework: 'mocha',
     reporters: [['allure', {outputDir: 'allure-results'}]],
+    beforeSession: function (config, capabilities, specs) {
+        const allureResultsDir = path.resolve(__dirname, 'allure-results');
+        if (fs.existsSync(allureResultsDir)) {
+            fs.rmSync(allureResultsDir, { recursive: true, force: true });
+            console.log('Cleared previous Allure results.');
+        }
+    },
     mochaOpts: {
         ui: 'bdd',
         timeout: 600000
@@ -48,24 +59,19 @@ exports.config = {
             console.log(`Test passed: ${test.title}`);
         }
     },
-    onComplete: function(exitCode, config, capabilities, results) {
-        // Check if results is defined
-        if (results && results.specs) {
-            const specs = config.specs.map(spec => spec.split('/').pop());
-            const executedSpecs = results.specs.map(spec => spec.split('/').pop());
-            const notExecutedSpecs = specs.filter(spec => !executedSpecs.includes(spec));
-
-            if (notExecutedSpecs.length > 0) {
-                notExecutedSpecs.forEach(spec => {
-                    addStep(`Spec not executed: ${spec}`, {}, 'failed');
-                });
+    onComplete: function() {
+        // Use a shell command to terminate the app
+        const { exec } = require('child_process');
+        exec('adb shell am force-stop com.krishivaas', (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error terminating app: ${error.message}`);
+                return;
             }
-        } else {
-            console.error('Results object is undefined or does not contain specs.');
-        }
-
-        // Terminate the app after all specs are done
-        browser.terminateApp('com.krishivaas');
-        console.log('App terminated successfully');
+            if (stderr) {
+                console.error(`Error output: ${stderr}`);
+                return;
+            }
+            console.log('App terminated successfully');
+        });
     }
 };

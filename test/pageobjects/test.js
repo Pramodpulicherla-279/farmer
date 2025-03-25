@@ -12,6 +12,7 @@ async function findAndClick(browser, selector, timeout = 7000) {
   } else {
     console.error(`Element not found: ${selector}`);
     addStep(`Element not found: ${selector}`, {}, 'failed');
+    throw new Error(`Element not found: ${selector}`);
   }
 }
 
@@ -19,7 +20,7 @@ async function allowPermissions(browser) {
   await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
   await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
   await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
-  await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
+  // await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")');
   await findAndClick(browser, 'android=new UiSelector().resourceId("com.android.permissioncontroller:id/permission_allow_button")');
 }
 
@@ -41,6 +42,7 @@ async function login(browser) {
 }
 
 async function addFarmIcon(browser) {
+  await new Promise(resolve => setTimeout(resolve, 10000));
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[1]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[5]');//add farm icon in my farms
 }
 //my farms button in dashboard
@@ -85,11 +87,57 @@ async function addBoundaryButton(browser){
 }
 //andoid back
 async function androidBack(browser) {
+  await new Promise(resolve => setTimeout(resolve, 10000));
   await browser.back();
 }
 //add farm button in dashboard
 async function addFarmButton(browser) {
+  await new Promise(resolve => setTimeout(resolve, 10000));
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]');//add farm button in dashboard
+}
+//select crop dropdown
+async function selectCrop(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Select or Search Crop"]');
+}
+//selecting crop in add crop
+async function selectCropInAddCrop(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Bengal Gram"]');
+}
+//crop duration dropdown
+async function cropDurationDropdown(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Select Crop Duration"]');
+}
+//short duration option in dropdown
+async function shortDurationOption(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Short (90 Days)"]');
+}
+//long duration option in dropdown
+async function longDurationOption(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Long (120 Days)"]');
+}
+//sowing type dropdown
+async function sowingTypeDropdown(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Select Sowing Type"]');
+}
+//direct sowing option in dropdown
+async function directSowingOption(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Direct Sowing"]');
+}
+//sowing date field
+async function sowingDateField(browser) {
+  await findAndClick(browser, '(//android.widget.TextView[@text="--/--/----"])[1]');
+}
+//selecting date in calendar
+async function selectingDateInCalendar(browser) {
+  await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');
+}
+//ok button in calendar
+async function okButtonInCalendar(browser) {
+  await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');
+}
+//submit button in add crop
+async function submitButtonInAddCrop(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');
 }
 
 async function addCrop(browser) {
@@ -100,7 +148,7 @@ async function addCrop(browser) {
   await findAndClick(browser, '//android.widget.TextView[@text="Select Sowing Type"]');//sowing type dropdown
   await findAndClick(browser, '//android.widget.TextView[@text="Direct Sowing"]');//direct sowing option in dropdown
   await findAndClick(browser, '(//android.widget.TextView[@text="--/--/----"])[1]');//sowing date field
-  await findAndClick(browser, '//android.view.View[@content-desc="07 February 2025"]');//selecting date in calendar
+  await findAndClick(browser, '//android.view.View[@content-desc="07 March 2025"]');//selecting date in calendar
   await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
   await findAndClick(browser, '//android.widget.TextView[@text="Submit"]');//submit button in add crop
 }
@@ -142,13 +190,43 @@ async function editFarm(browser) {
   await findAndClick(browser, '//android.widget.TextView[@text="Update"]');//update button in edit farm
   await new Promise(resolve => setTimeout(resolve, 30000));//waiting for 30 seconds
 }
-
+//edit crop button in three dots
+async function editCropButton(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Edit Crop');
+}
+//sowing type dropdown in edit crop
+async function sowingTypeDropdownInEditCrop(browser) {
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[6]');//sowing type dropdown in edit crop
+}
+//transplanted option in dropdown in edit crop
+async function transplantedOption(browser) {
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  await findAndClick(browser, '//android.widget.TextView[@text="Transplanted"]');//transplanted option in dropdown in edit crop
+}
+//transplanted date field in edit crop
+async function transplantedDateField(browser) {
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[6]')
+}
+//selecting date in calendar in edit crop
+async function selectingDateInCalendarInEditCrop(browser) {
+  await findAndClick(browser, '//android.view.View[@content-desc="15 March 2025"]');//selecting date in calendar
+}
+//ok button in calendar in edit crop
+async function okButtonInCalendarInEditCrop(browser) {
+  await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
+}
+//update button in edit crop
+async function updateButtonInEditCrop(browser) {
+  await findAndClick(browser, '//android.widget.TextView[@text="Update"]');//update button in edit crop
+}
 async function editCrop(browser) {
   await findAndClick(browser, '//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView');
   await findAndClick(browser, '//android.widget.TextView[@text="Edit Crop"]');//edit crop button in three dots
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[5]');
+  await new Promise(resolve => setTimeout(resolve, 5000));
   await findAndClick(browser, '//android.widget.TextView[@text="Transplanted"]');//transplanted option in dropdown in edit crop
-  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[6]');
+  await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[6]');//transplanted date field in edit crop
   await findAndClick(browser, '//android.view.View[@content-desc="15 March 2025"]');//selecting date in calendar
   await findAndClick(browser, '//android.widget.Button[@resource-id="android:id/button1"]');//ok button in calendar
   await findAndClick(browser, '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.view.ViewGroup[7]');
@@ -230,9 +308,26 @@ module.exports = {
   editBoundary,
   addBoundaryButton,
   androidBack,
-  addFarmButton
+  addFarmButton,
+  selectCrop,
+  selectCropInAddCrop,
+  cropDurationDropdown,
+  shortDurationOption,
+  sowingTypeDropdown,
+  directSowingOption,
+  sowingDateField,
+  selectingDateInCalendar,
+  okButtonInCalendar,
+  submitButtonInAddCrop,
+  editCropButton,
+  sowingTypeDropdownInEditCrop,
+  transplantedOption,
+  transplantedDateField,
+  selectingDateInCalendarInEditCrop,
+  okButtonInCalendarInEditCrop,
+  updateButtonInEditCrop,
+  longDurationOption
+
+
 };
 
-//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[4]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView
-//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView
-//android.widget.ScrollView/android.view.ViewGroup/android.view.ViewGroup[1]/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[3]/android.view.ViewGroup/android.view.ViewGroup/com.horcrux.svg.SvgView/com.horcrux.svg.GroupView/com.horcrux.svg.PathView

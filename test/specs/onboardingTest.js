@@ -1,4 +1,6 @@
+const { addStep } = require('@wdio/allure-reporter').default;
 const { findAndClick, allowPermissions, login, addFarmIcon, myfarmsButton, addFarm, threeDots1, threeDots2, closeIcon, skipCrop, cancelButton, addCropButton, addCrop, tapOnScreen, editFarm, editCrop, editBoundary, addBoundaryButton, androidBack, addFarmButton, popCalendar } = require('../pageobjects/test');
+
 
 // before(async function() {
 //     this.timeout(600000); // Set timeout to 10 minutes
@@ -282,9 +284,6 @@ describe('TC-12 : Dashboard > Add farm > Skip crop > Add Boundary > Edit farm > 
     });
     it('Add Crop', async function() {
         await addCrop(browser);
-    });
-    it('three dots', async function() {
-        await threeDots1(browser);
     });
     it('Edit Crop', async function() {
         await editCrop(browser);

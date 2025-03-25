@@ -1,3 +1,5 @@
+const { addStep } = require('@wdio/allure-reporter').default;
+
 async function findAndClick(browser, selector, timeout = 7000) {
     const element = await browser.$(selector);
     if (await element.isExisting()) {
