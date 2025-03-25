@@ -1,10 +1,10 @@
-name: Android CI Tests
+name: Android CI Tests with Allure
 on: [push]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # Extended timeout
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Node Environment
+      # Node Environment (Required for Allure)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -26,53 +26,55 @@ jobs:
       - name: Install npm packages
         run: npm install
 
-      # Install Firebase CLI
+      # Allure Setup
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
+
+      # Firebase Setup
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      # Authenticate with Firebase
       - name: Authenticate with Firebase
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
           gcloud auth activate-service-account --key-file=firebase-service-account.json
-          gcloud config set project <YOUR_FIREBASE_PROJECT_ID>
+          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      # Build APK for Testing
-      - name: Build Debug APK
+      # Build APKs
+      - name: Build APKs
         run: |
           ./gradlew assembleDebug
           ./gradlew assembleAndroidTest
 
-      # Run Firebase Test Lab Tests
-      - name: Run Firebase Test Lab
+      # Run Firebase Test Lab with local results
+      - name: Run Tests on Firebase
         run: |
           gcloud firebase test android run \
             --app app/build/outputs/apk/debug/app-debug.apk \
             --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
             --device model=Pixel6,version=34,locale=en,orientation=portrait \
-            --results-dir=allure-results
+            --type instrumentation \
+            --directories-to-pull /sdcard/Download \
+            --environment-variables clearPackageData=true \
+            --timeout 20m
 
-      # Install Allure CLI
-      - name: Install Allure CLI
-        run: npm install -g allure-commandline
+      # Pull test results from device (assuming tests output to /sdcard/Download)
+      - name: Pull Test Results
+        run: |
+          adb devices
+          adb pull /sdcard/Download/allure-results ./allure-results || echo "No results found"
 
       # Generate Allure Report
       - name: Generate Allure Report
         if: always()
         run: |
-          allure generate allure-results -o allure-report --clean
+          mkdir -p allure-report
+          allure generate ./allure-results --clean -o allure-report
 
-      # Upload Allure Report as Artifact
-      - name: Upload Allure Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: ./allure-report
-
-      # Deploy Allure Report to GitHub Pages
+      # Deploy Report to GitHub Pages
       - name: Deploy Allure Report
-        if: always()
         uses: peaceiris/actions-gh-pages@v3
+        if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
