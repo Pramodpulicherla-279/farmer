@@ -9,14 +9,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Android SDK (required for adb)
+      # Setup Android SDK
       - name: Set up Android SDK
         run: |
           mkdir -p $ANDROID_HOME/licenses
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > $ANDROID_HOME/licenses/android-sdk-license
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools"
 
-      # Allure setup (for reporting)
+      # Allure setup
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,19 +32,21 @@ jobs:
           gcloud auth activate-service-account --key-file=firebase-key.json
           gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      # Test single APK (Robo test or basic installation)
+      # Test single APK - FIXED FILENAME HANDLING
       - name: Test APK with Firebase
         run: |
+          # Rename file to remove problematic characters
+          cp "./Krishivaas_Farmer_RN(V1.3.60).apk" ./app.apk
           gcloud firebase test android run \
-            --app ./Krishivaas_Farmer_RN(V1.3.60).apk \          # Path to your Play Store APK
-            --type robo \                   # Automatic exploration test
+            --app ./app.apk \
+            --type robo \
             --device model=Pixel6,version=33 \
             --timeout 5m
 
-      # Optional: Verify installation
+      # Verify installation
       - name: Check Installation
         run: |
-          adb install -t ./Krishivaas_Farmer_RN(V1.3.60).apk
+          adb install -t ./app.apk
           adb shell pm list packages | grep com.krishivaas
           adb uninstall com.krishivaas
 
