@@ -7,19 +7,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Java 17 for Android SDK tools (required)
-      - name: Set up JDK 17 (for Android SDK)
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      # Java 11 for test execution (if your tests need it)
-      - name: Set up JDK 11 (for tests)
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '11'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,6 +24,10 @@ jobs:
       - name: Install Allure CLI
         run: npm install -g allure-commandline
 
+      - name: Set up Android SDK
+        run: |
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+
       - name: Start Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -41,11 +37,12 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 600
+          script: echo "Emulator setup complete"
 
-      - name: Wait for Emulator to Boot
+      - name: Wait for Emulator
         run: |
           adb wait-for-device
-          adb shell input keyevent 82  # Wake up screen
+          adb shell input keyevent 82
           adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
 
       - name: Run tests
