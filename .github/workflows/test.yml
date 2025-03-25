@@ -18,13 +18,10 @@ jobs:
       # Android SDK Setup
       - name: Set up Android Environment
         run: |
-          # Accept licenses
           mkdir -p $ANDROID_HOME/licenses
           echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
           echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-
-          # Install required components
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator" "build-tools;34.0.0"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "emulator" "build-tools;34.0.0" "platforms;android-34"
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
 
@@ -45,50 +42,56 @@ jobs:
       - name: Reset ADB Server
         run: |
           adb kill-server
+          sleep 5
           adb start-server
+          sleep 5
 
       - name: Start Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 34  # More stable than API 30
           arch: x86_64
           profile: Nexus 6
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-accel
           disable-animations: true
-          emulator-boot-timeout: 900
+          emulator-boot-timeout: 1200  # 20 minutes
           script: echo "Emulator setup complete"
 
-      # Emulator Readiness
+      # Enhanced Emulator Readiness Check
       - name: Wait for Emulator
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          # Wait for device to be visible
-          until adb devices | grep -q "emulator-.*device"; do
-            sleep 5
-            echo "Waiting for device to come online..."
+          # Wait for emulator process
+          until adb devices | grep -q "emulator-.*device$"; do
+            echo "Emulator not yet connected..."
+            adb kill-server
+            adb start-server
+            sleep 10
           done
 
-          # Unlock device
+          # Extra stabilization wait
+          sleep 20
+
+          # Unlock and prepare device
           adb shell input keyevent 82
-          
-          # Disable animations
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
           
-          # Wait for full boot
+          # Final boot verification
+          adb wait-for-device
           until adb shell getprop sys.boot_completed | grep -q "1"; do
-            sleep 5
             echo "Waiting for boot completion..."
+            sleep 10
           done
 
-          # Verify connection
-          adb devices
-          adb shell getprop
+          # Health check
+          adb shell pm list packages
+          echo "Emulator fully ready!"
 
       # Test Execution
       - name: Run tests
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: npx wdio run wdio.conf.js
 
       # Reporting
