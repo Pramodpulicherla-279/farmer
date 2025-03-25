@@ -22,44 +22,53 @@ jobs:
       - name: Install Allure
         run: npm install -g allure-commandline
 
-      # Firebase authentication
+      # Firebase authentication (only needed if using Firebase Test Lab)
       - name: Authenticate Firebase
+        if: false # Disabled since we're not using Firebase Test Lab
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-key.json
           gcloud auth activate-service-account --key-file=firebase-key.json
           gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
 
-      # Test single APK
-      - name: Test APK with Firebase
+      # Prepare APK
+      - name: Prepare APK
         run: |
-          # Rename file to remove problematic characters
           cp "./Krishivaas_Farmer_RN(V1.3.60).apk" ./app.apk
-          gcloud firebase test android run \
-            --app ./app.apk \
-            --type robo \
-            --device model=redfin,version=33 \  
-            --timeout 5m
 
-      # Verify installation
-      - name: Check Installation
-        run: |
-          adb install -t ./app.apk
-          adb shell pm list packages | grep com.krishivaas
-          adb uninstall com.krishivaas
+      # Install APK
+      - name: Install APK
+        run: adb install -t ./app.apk
 
-      # Pull Allure results
-      - name: Get test results
+      # Run tests (using ADB commands instead of Firebase)
+      - name: Run Tests
         run: |
+          # Clear previous results
+          rm -rf ./results
+          mkdir -p ./results
+          
+          # Run your tests here (example commands)
+          adb shell am instrument -w -r -e debug false \
+            -e class com.krishivaas.TestSuite \
+            com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee ./results/test-output.txt
+          
+          # Pull Allure results from device
           adb pull /sdcard/Download/allure-results ./results || echo "No results found"
 
-      # Generate report
-      - name: Allure Report
+      # Generate Allure report
+      - name: Generate Allure Report
         if: always()
         run: |
           allure generate ./results --clean -o ./report
           
-      # Upload report
+      # Upload report as artifact
       - uses: actions/upload-artifact@v4
         with:
-          name: test-report
-          path: ./report
+          name: allure-report
+          path: ./allure-report
+
+      # Serve report (optional - for viewing in workflow summary)
+      - name: Serve Allure Report
+        if: always()
+        run: |
+          allure serve ./results
