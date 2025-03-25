@@ -37,7 +37,7 @@ jobs:
           gcloud firebase test android run \
             --app ./app.apk \
             --type robo \
-            --device model=redfin,version=33 \  # Using Pixel 5 (redfin) instead of Pixel 6
+            --device model=redfin,version=33 \  
             --timeout 5m
 
       # Verify installation
