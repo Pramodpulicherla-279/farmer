@@ -1,92 +1,121 @@
-name: Run Tests
+name: Android CI Tests
 on: [push]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45  # Increased overall timeout
+    timeout-minutes: 60  # Extended timeout for stability
+
     steps:
       - uses: actions/checkout@v4
 
-      # Java Setup
+      # Java Environment
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Android Setup - More reliable method
-      - name: Set up Android SDK
+      # Android Environment Setup
+      - name: Configure Android SDK
         run: |
+          # Bypass XML license issues
           mkdir -p $ANDROID_HOME/licenses
-          echo -e "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-          echo -e "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-          
-          # Install specific working versions
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install \
-            "platform-tools" \
-            "emulator" \
-            "platforms;android-33" \
-            "build-tools;33.0.1" \
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
+
+          # Install components without XML parsing
+          components=(
+            "platform-tools"
+            "emulator"
+            "platforms;android-33"
+            "build-tools;33.0.1"
             "system-images;android-33;google_apis;x86_64"
-          
+          )
+
+          for component in "${components[@]}"; do
+            echo "Installing $component..."
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --verbose $component
+          done
+
+          # Update PATH
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
 
-      # Node Setup
+      # Node Environment
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       # Dependencies
-      - name: Install dependencies
+      - name: Install npm packages
         run: npm install
 
       - name: Install Allure CLI
         run: npm install -g allure-commandline
 
-      # Emulator Setup - Enhanced reliability
-      - name: Prepare ADB Connection
+      # Emulator Management
+      - name: Initialize ADB
         run: |
           adb kill-server
           sleep 5
           adb start-server
-          sleep 5
           adb devices
 
-      - name: Launch Android Emulator
+      - name: Start Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33  # More stable than API 30
+          api-level: 33
           arch: x86_64
-          profile: pixel_5  # More reliable profile
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-accel
+          profile: pixel_5
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -no-snapshot
+            -noaudio
+            -no-boot-anim
+            -no-accel
           disable-animations: true
-          emulator-boot-timeout: 1800  # 30 minutes
-          script: echo "Starting emulator..."
+          emulator-boot-timeout: 2400  # 40 minutes
+          script: echo "Emulator initialization..."
 
       # Robust Connection Handling
-      - name: Establish Stable Connection
-        timeout-minutes: 10
+      - name: Verify Emulator Readiness
+        timeout-minutes: 15
         run: |
-          # Connection retry loop
-          for i in {1..10}; do
-            adb kill-server
-            adb start-server
-            sleep 5
-            
-            if adb devices | grep -q "emulator-.*device"; then
-              echo "Connection established"
-              break
-            fi
-            
-            echo "Retry $i/10 - Waiting for connection..."
-            sleep 10
-          done
+          # Connection stabilization
+          function wait_for_device() {
+            local attempts=0
+            while [ $attempts -lt 30 ]; do
+              if adb devices | grep -q "emulator-.*device"; then
+                return 0
+              fi
+              ((attempts++))
+              echo "Attempt $attempts/30: Waiting for device..."
+              adb kill-server
+              adb start-server
+              sleep 10
+            done
+            return 1
+          }
 
-          # Verify connection
-          if ! adb devices | grep -q "emulator-.*device"; then
+          # Boot verification
+          function wait_for_boot() {
+            local attempts=0
+            while [ $attempts -lt 60 ]; do
+              if adb shell getprop sys.boot_completed 2>/dev/null | grep -q "1"; then
+                return 0
+              fi
+              ((attempts++))
+              echo "Attempt $attempts/60: Waiting for boot completion..."
+              sleep 10
+            done
+            return 1
+          }
+
+          # Execute checks
+          if ! wait_for_device; then
             echo "::error::Failed to establish ADB connection"
             exit 1
           fi
@@ -97,33 +126,33 @@ jobs:
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
 
-          # Wait for full boot
-          for i in {1..30}; do
-            if adb shell getprop sys.boot_completed | grep -q "1"; then
-              echo "Boot completed"
-              break
-            fi
-            echo "Waiting for boot completion ($i/30)..."
-            sleep 10
-          done
+          if ! wait_for_boot; then
+            echo "::error::Emulator failed to boot"
+            exit 1
+          fi
 
-          # Final verification
-          adb shell pm list packages > /dev/null
-          echo "Emulator ready for testing"
+          # Final health check
+          if ! adb shell pm list packages >/dev/null; then
+            echo "::error::Package manager not responding"
+            exit 1
+          fi
+
+          echo "Emulator is fully operational"
 
       # Test Execution
-      - name: Run tests
-        timeout-minutes: 20
+      - name: Run UI Tests
+        timeout-minutes: 30
         run: npx wdio run wdio.conf.js
 
-      # Reporting
+      # Test Reporting
       - name: Generate Allure Report
         if: always()
         run: |
           allure generate allure-results -o allure-report --clean
 
-      - name: Deploy Report
+      - name: Deploy Test Report
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
+          keep_files: true
