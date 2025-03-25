@@ -16,7 +16,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Node Environment (Required for Allure)
+      # Gradle Installation (Added here)
+      - name: Install Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.4
+
+      # Node Environment
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -38,7 +44,7 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
           gcloud auth activate-service-account --key-file=firebase-service-account.json
-          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}  # Make sure this secret exists
+          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
 
       # Build APKs
       - name: Build APKs
