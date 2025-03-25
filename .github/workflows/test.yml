@@ -1,26 +1,13 @@
 name: Android CI Tests
 on: [push]
 
-env:
-  ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: 10
-  ADB_INSTALL_TIMEOUT: 30
-
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # Increased overall timeout
+    timeout-minutes: 90  # Extended timeout
 
     steps:
       - uses: actions/checkout@v4
-
-      # Cache Android SDK to speed up builds
-      - name: Cache Android SDK
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.android/cache
-            $ANDROID_HOME
-          key: ${{ runner.os }}-android-sdk-${{ hashFiles('**/build.gradle') }}
 
       # Java Environment
       - name: Set up JDK 17
@@ -28,7 +15,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       # Android Environment Setup
       - name: Configure Android SDK
@@ -49,32 +35,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       # Dependencies
       - name: Install npm packages
-        run: npm ci  # Using ci for more reliable installs
+        run: npm install
 
       - name: Install Allure CLI
         run: npm install -g allure-commandline
-
-      # Clean up any previous emulator processes
-      - name: Clean Previous Emulator Processes
-        run: |
-          echo "Cleaning up any existing emulator processes..."
-          pkill -9 -f "emulator.*-avd" || true
-          pkill -9 adb || true
-          rm -rf ~/.android/adb* >/dev/null 2>&1
 
       # ADB Setup
       - name: Initialize ADB Environment
         timeout-minutes: 5
         run: |
+          # Clean up any existing processes
+          pkill -9 adb || true
+          rm -rf ~/.android/adb* >/dev/null 2>&1
+          
+          # Initialize ADB
           adb start-server
-          sleep 5
+          sleep 10
           adb devices
 
-      # Emulator Launch with improved configuration
+      # Emulator Launch
       - name: Launch Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -91,88 +73,77 @@ jobs:
             -read-only
             -netdelay none
             -netspeed full
-            -no-snapshot-save
           disable-animations: true
-          emulator-boot-timeout: 1200  # 20 minutes
+          emulator-boot-timeout: 60000  # 60 minutes
           script: echo "Starting emulator..."
 
-      # Improved connection handling
+      # Connection Handling
       - name: Establish ADB Connection
-        timeout-minutes: 30
+        timeout-minutes: 20
         run: |
-          # Wait for device to be visible
-          adb wait-for-device
-          
-          # Function to check if device is fully booted
-          check_boot_complete() {
-            boot_completed=$(adb shell getprop sys.boot_completed | tr -d '\r')
-            [ "$boot_completed" = "1" ] && return 0 || return 1
+          # Function to check connection
+          check_connection() {
+            adb kill-server
+            sleep 5
+            adb start-server
+            sleep 10
+            
+            if adb devices | grep -q "emulator-.*device"; then
+              echo "Connection verified"
+              return 0
+            fi
+            return 1
           }
 
           # Main retry loop
-          max_wait_seconds=1800  # 30 minutes
-          start_time=$(date +%s)
+          max_attempts=20
           attempt=1
           
-          while [ $(($(date +%s) - start_time)) -lt $max_wait_seconds ]; do
-            echo "Attempt $attempt - $(date)"
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts"
             
-            if check_boot_complete; then
-              echo "Emulator fully booted"
-              
-              # Additional readiness check
-              if adb shell pm list packages >/dev/null; then
-                echo "ADB connection stable"
+            if check_connection; then
+              # Additional verification
+              if adb shell getprop sys.boot_completed | grep -q "1"; then
+                echo "Emulator fully ready"
                 exit 0
+              else
+                echo "Connected but not fully booted"
               fi
+            else
+              echo "Connection failed, retrying..."
             fi
             
-            echo "Not ready yet, waiting 10 seconds..."
-            sleep 10
+            # Exponential backoff
+            sleep_time=$((5 * attempt))
+            echo "Waiting $sleep_time seconds before next attempt..."
+            sleep $sleep_time
+            
             ((attempt++))
           done
 
-          echo "::error::Failed to establish stable ADB connection after $max_wait_seconds seconds"
+          echo "::error::Failed to establish stable ADB connection after $max_attempts attempts"
           echo "::group::Debug Information"
-          adb devices -l
+          adb devices
           adb shell getprop
-          adb logcat -d | tail -n 50
+          ps aux | grep adb
           echo "::endgroup::"
           exit 1
 
       # Device Preparation
       - name: Prepare Emulator
         run: |
-          # Unlock device
           adb shell input keyevent 82
-          
-          # Disable animations
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
-          
-          # Wait for package manager
-          adb wait-for-device
           adb shell pm list packages >/dev/null
           echo "Device prepared for testing"
 
       # Test Execution
       - name: Run UI Tests
-        timeout-minutes: 45
+        timeout-minutes: 30
         run: npx wdio run wdio.conf.js
-
-      # Force stop emulator after tests
-      - name: Force Stop Emulator
-        if: always()
-        run: |
-          echo "Stopping emulator forcefully..."
-          adb kill-server
-          
-          EMULATOR_PID=$(pgrep -f "emulator.*-avd")
-          if [ -n "$EMULATOR_PID" ]; then
-            echo "Killing emulator process $EMULATOR_PID"
-            kill -9 $EMULATOR_PID
-          fi
 
       # Test Reporting
       - name: Generate Allure Report
@@ -181,9 +152,15 @@ jobs:
           allure generate allure-results -o allure-report --clean
 
       - name: Deploy Test Report
-        if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
           keep_files: true
+
+      # Terminate Emulator
+      - name: Terminate Emulator
+        if: always()
+        run: |
+          adb -s emulator-5554 emu kill || true
+          echo "Emulator terminated successfully"
