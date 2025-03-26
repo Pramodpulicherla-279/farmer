@@ -30,7 +30,6 @@ jobs:
       - name: Prepare APKs
         run: |
           cp "./Krishivaas_Farmer.apk" ./app.apk
-          cp "./Krishivaas_Farmer_Test.apk" ./test.apk
 
       # Create directory for Allure results
       - name: Create Allure Directory
