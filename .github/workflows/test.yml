@@ -37,6 +37,7 @@ jobs:
       # Create AVD
       - name: Create AVD
         run: |
+          mkdir -p ~/.android/avd
           echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager create avd \
             --force \
             --name test \
@@ -46,6 +47,8 @@ jobs:
 
       # Start emulator
       - name: Start emulator
+        env:
+          ANDROID_AVD_HOME: ~/.android/avd
         run: |
           $ANDROID_SDK_ROOT/emulator/emulator \
             -avd test \
