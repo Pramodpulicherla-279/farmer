@@ -30,7 +30,7 @@ jobs:
       # Prepare APK
       - name: Prepare APK
         run: |
-          cp "./Krishivaas_Farmer_RN(V1.3.60).apk" ./app.apk
+          cp "./Krishivaas_Farmer.apk" ./app.apk
 
       # Install APK with retry logic
       - name: Install APK
