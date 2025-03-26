@@ -1,4 +1,4 @@
-name: Android APK Testing
+name: Android APK Testing with Firebase Test Lab
 on: [push]
 
 jobs:
@@ -9,14 +9,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Proper Android SDK setup with ADB
+      # Set up Java and Android SDK
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        
 
-      # Start ADB server
-      - name: Start ADB Server
-        run: adb start-server
+      # Install Firebase CLI and authenticate
+      - name: Set up Firebase CLI
+        run: |
+          curl -sL https://firebase.tools | bash
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase-service-account.json
+          firebase login:ci --no-localhost --token "${{ secrets.FIREBASE_TOKEN }}"
+          firebase use --add ${{ secrets.FIREBASE_PROJECT_ID }}
 
       # Allure setup
       - name: Set up Node.js
@@ -32,43 +41,25 @@ jobs:
         run: |
           cp "./Krishivaas_Farmer_RN(V1.3.60).apk" ./app.apk
 
-      # Install APK with retry logic
-      - name: Install APK
+      # Run tests on Firebase Test Lab
+      - name: Run Tests on Firebase Test Lab
         run: |
-          # Wait for ADB to be fully ready
-          adb wait-for-device
-          # Install with retries in case of temporary failures
-          for i in {1..3}; do
-            if adb install -t ./app.apk; then
-              echo "Installation succeeded"
-              break
-            else
-              echo "Installation attempt $i failed, retrying..."
-              sleep 5
-            fi
-          done
-
-      # Verify installation
-      - name: Verify Installation
-        run: |
-          adb shell pm list packages | grep com.krishivaas || echo "Package not found"
-
-      # Run tests and collect Allure results
-      - name: Run Tests
-        run: |
-          # Clear previous results
-          rm -rf ./results
+          # Create a results directory
           mkdir -p ./results
           
-          # Run your tests here (example command)
-          # Replace with your actual test command
-          adb shell am instrument -w -r -e debug false \
-            -e class com.krishivaas.TestSuite \
-            com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner \
-            | tee ./results/test-output.txt
+          # Run the test on Firebase Test Lab using Firebase CLI
+          firebase test android run \
+            --app ./app.apk \
+            --test ./path/to/your/test.apk \
+            --device model=Pixel2,version=30 \
+            --timeout 20m \
+            --results-bucket=gs://your-bucket-name \
+            --results-dir=github-actions-$GITHUB_RUN_ID \
+            --environment-variables clearPackageData=true \
+            --directories-to-pull=/sdcard/Download/allure-results
           
-          # Pull Allure results from device
-          adb pull /sdcard/Download/allure-results ./results || echo "No results found"
+          # Download the results
+          gsutil -m cp -r "gs://your-bucket-name/github-actions-$GITHUB_RUN_ID/*" ./results/
 
       # Generate Allure report
       - name: Generate Allure Report
@@ -80,11 +71,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: ./report
-
-      # Terminate Emulator
-      - name: Terminate Emulator
-        if: always()
-        run: |
-          adb -s emulator-5554 emu kill || true
-          echo "Emulator terminated successfully"
+          path: ./allure-report
