@@ -30,7 +30,7 @@ jobs:
         run: |
           gcloud firebase test android run \
             --type instrumentation \
-            --app=./Krishivaas_Farmer_RN(V1.3.60).apk \
+            --app=./Krishivaas_Farmer.apk \
             --test=./Krishivaas_Farmer_Test.apk \
             --device model=Pixel2,version=30,locale=en,orientation=portrait \
             --results-dir=gs://firebase-test-results
