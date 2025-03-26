@@ -1,4 +1,4 @@
-name: Android APK Testing with Firebase Test Lab
+name: Android APK Testing
 on: [push]
 
 jobs:
@@ -9,27 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Set up JDK 17 (required by newer Android SDK)
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      # Set up Android SDK with specific command-line tools version
+      # Setup Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '12.0'  # Use version compatible with JDK 11
-          skip-jdk-version-check: true   # Optional safety if needed
-
-      # Install Firebase CLI and authenticate
-      - name: Set up Firebase CLI
-        run: |
-          curl -sL https://firebase.tools | bash
-          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase-service-account.json
-          firebase login:ci --no-localhost --token "${{ secrets.FIREBASE_TOKEN }}"
-          firebase use --add ${{ secrets.FIREBASE_PROJECT_ID }}
 
       # Allure setup
       - name: Set up Node.js
@@ -40,30 +22,38 @@ jobs:
       - name: Install Allure
         run: npm install -g allure-commandline
 
+      # Firebase authentication (only needed if using Firebase Test Lab)
+      - name: Authenticate Firebase
+        if: false # Disabled since we're not using Firebase Test Lab
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-key.json
+          gcloud auth activate-service-account --key-file=firebase-key.json
+          gcloud config set project ${{ secrets.FIREBASE_PROJECT_ID }}
+
       # Prepare APK
       - name: Prepare APK
         run: |
           cp "./Krishivaas_Farmer_RN(V1.3.60).apk" ./app.apk
 
-      # Run tests on Firebase Test Lab
-      - name: Run Tests on Firebase Test Lab
+      # Install APK
+      - name: Install APK
+        run: adb install -t ./app.apk
+
+      # Run tests (using ADB commands instead of Firebase)
+      - name: Run Tests
         run: |
-          # Create a results directory
+          # Clear previous results
+          rm -rf ./results
           mkdir -p ./results
           
-          # Run the test on Firebase Test Lab using Firebase CLI
-          firebase test android run \
-            --app ./app.apk \
-            --test ./path/to/your/test.apk \
-            --device model=Pixel2,version=30 \
-            --timeout 20m \
-            --results-bucket=gs://your-bucket-name \
-            --results-dir=github-actions-$GITHUB_RUN_ID \
-            --environment-variables clearPackageData=true \
-            --directories-to-pull=/sdcard/Download/allure-results
+          # Run your tests here (example commands)
+          adb shell am instrument -w -r -e debug false \
+            -e class com.krishivaas.TestSuite \
+            com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee ./results/test-output.txt
           
-          # Download the results
-          gsutil -m cp -r "gs://your-bucket-name/github-actions-$GITHUB_RUN_ID/*" ./results/
+          # Pull Allure results from device
+          adb pull /sdcard/Download/allure-results ./results || echo "No results found"
 
       # Generate Allure report
       - name: Generate Allure Report
@@ -75,4 +65,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: ./report
+          path: ./allure-report
+
+      # Serve report (optional - for viewing in workflow summary)
+      - name: Serve Allure Report
+        if: always()
+        run: |
+          allure serve ./results
