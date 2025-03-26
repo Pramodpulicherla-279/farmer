@@ -23,9 +23,9 @@ jobs:
           yes | sdkmanager --licenses > /dev/null
           
           # Install specific versions to avoid XML warnings
-          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-33"
+          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-30"
           sdkmanager "emulator" --channel=0
-          sdkmanager "system-images;android-33;google_apis;x86_64" --channel=0
+          sdkmanager "system-images;android-30;google_apis;x86_64" --channel=0
 
       # Install Allure
       - name: Set up Allure
@@ -41,7 +41,7 @@ jobs:
           echo no | avdmanager create avd \
             --force \
             --name test \
-            --package "system-images;android-33;google_apis;x86_64" \
+            --package "system-images;android-30;google_apis;x86_64" \
             --device "Nexus 5" \
             --abi "x86_64"
 
@@ -49,7 +49,7 @@ jobs:
       - name: Launch Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: 30
           arch: x86_64
           profile: Nexus 5  # More reliable than Pixel 5
           avd-name: test    # Use our pre-created AVD
