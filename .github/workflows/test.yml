@@ -9,52 +9,82 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Java (required for Android)
+      # Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Set up Android SDK (free)
+      # Set up Android SDK with specific versions
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          # Accept licenses first
+          yes | sdkmanager --licenses > /dev/null
+          
+          # Install specific versions to avoid XML warnings
+          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-33"
+          sdkmanager "emulator" --channel=0
+          sdkmanager "system-images;android-33;google_apis;x86_64" --channel=0
 
-      # Install Allure (free)
+      # Install Allure
       - name: Set up Allure
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       - run: npm install -g allure-commandline
 
-      # Start Android Emulator (free)
+      # Create AVD manually to ensure success
+      - name: Create AVD
+        run: |
+          echo "Creating AVD..."
+          echo no | avdmanager create avd \
+            --force \
+            --name test \
+            --package "system-images;android-33;google_apis;x86_64" \
+            --device "Nexus 5" \
+            --abi "x86_64"
+
+      # Launch emulator with more stable configuration
       - name: Launch Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33  # Latest stable Android version
+          api-level: 33
           arch: x86_64
-          profile: Pixel 5
+          profile: Nexus 5  # More reliable than Pixel 5
+          avd-name: test    # Use our pre-created AVD
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: |
             adb wait-for-device
-            adb install -t ./Krishivaas_Farmer.apk
+            echo "Device list:"
+            adb devices -l
+            echo "Installing APK..."
+            adb install -t -g ./Krishivaas_Farmer.apk
+            echo "Creating results directory..."
             adb shell mkdir -p /sdcard/Download/allure-results
+            echo "Running tests..."
             adb shell am instrument -w \
               -e listener com.krishivaas.allure.AllureAndroidListener \
               com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner
 
-      # Extract test results (free)
+      # Extract test results
       - name: Get Allure Results
         run: |
           mkdir -p allure-results
           adb pull /sdcard/Download/allure-results ./allure-results || echo "No results found"
+          echo "Results directory contents:"
+          ls -la ./allure-results
 
-      # Generate report (free)
+      # Generate report
       - name: Generate Allure Report
         if: always()
-        run: allure generate ./allure-results --clean -o ./report
+        run: |
+          allure generate ./allure-results --clean -o ./report
+          echo "Report generated at ./report"
 
-      # Save report as artifact (free)
+      # Save report as artifact
       - name: Upload Report
         uses: actions/upload-artifact@v4
         with:
