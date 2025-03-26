@@ -9,15 +9,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Java and Android SDK
+      # Set up JDK 17 (required by newer Android SDK)
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # Set up Android SDK with specific command-line tools version
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '12.0'  # Use version compatible with JDK 11
+          skip-jdk-version-check: true   # Optional safety if needed
 
       # Install Firebase CLI and authenticate
       - name: Set up Firebase CLI
@@ -71,4 +75,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: ./allure-report
+          path: ./report
