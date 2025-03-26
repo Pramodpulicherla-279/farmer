@@ -16,40 +16,31 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Set up Android SDK with specific versions to avoid XML warnings
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '8.0'  # Older but more stable version
-          build-tools-version: '30.0.3'
-          platform-version: '30'
-          emulator-version: '31.3.13'  # Known stable version
-          ndk-version: 'none'
-
-      # Accept licenses
-      - name: Accept licenses
+      # Install Android SDK manually
+      - name: Install Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --update
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          rm cmdline-tools.zip
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --update
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3" "system-images;android-30;google_apis;x86_64"
 
-      # Install system image
-      - name: Install system image
-        run: |
-          sdkmanager "system-images;android-30;google_apis;x86_64"
-          echo "System image installed"
-
-      # Create AVD with more stable configuration
+      # Create AVD
       - name: Create AVD
         run: |
-          echo no | avdmanager create avd \
+          echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager create avd \
             --force \
             --name test \
             --package "system-images;android-30;google_apis;x86_64" \
             --device "Nexus 5" \
             --abi "x86_64"
-          echo "AVD created successfully"
 
-      # Start emulator with proper settings
+      # Start emulator
       - name: Start emulator
         run: |
           $ANDROID_SDK_ROOT/emulator/emulator \
@@ -58,7 +49,6 @@ jobs:
             -no-boot-anim \
             -no-window \
             -gpu swiftshader_indirect \
-            -accel off \
             -memory 2048 \
             -partition-size 2048 \
             -netspeed full \
