@@ -4,87 +4,130 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25  # Reduced from 30 for better resource management
 
     steps:
       - uses: actions/checkout@v4
 
-      # Proper Android SDK setup with ADB
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        
-
-      # Start ADB server
-      - name: Start ADB Server
-        run: adb start-server
-
-      # Allure setup
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      # Cache Android SDK to speed up subsequent runs
+      - name: Cache Android SDK
+        uses: actions/cache@v3
+        id: android-cache
         with:
-          node-version: '20'
-      
-      - name: Install Allure
-        run: npm install -g allure-commandline
+          path: |
+            ~/.android
+            /usr/local/lib/android/sdk
+          key: ${{ runner.os }}-android-30
 
-      # Prepare APK
-      - name: Prepare APK
+      # Set up Java with optimized settings
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # Install only essential Android components
+      - name: Install Android SDK
+        if: steps.android-cache.outputs.cache-hit != 'true'
         run: |
-          cp "./Krishivaas_Farmer.apk" ./app.apk
+          sudo apt-get update -qq && sudo apt-get install -y wget unzip
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install \
+            "platform-tools" \
+            "platforms;android-30" \
+            "build-tools;30.0.3" \
+            "system-images;android-30;google_apis;x86_64" \
+            "emulator" >/dev/null
 
-      # Install APK with retry logic
+      # Configure environment
+      - name: Set up environment
+        run: |
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
+
+      # Create AVD with optimized settings
+      - name: Create AVD
+        run: |
+          echo no | avdmanager create avd \
+            --force \
+            --name test \
+            --package "system-images;android-30;google_apis;x86_64" \
+            --device "Nexus 5" \
+            --abi "x86_64" \
+            --sdcard 512M
+
+      # Start emulator with performance optimizations
+      - name: Start emulator
+        env:
+          ANDROID_AVD_HOME: ~/.android/avd
+        run: |
+          emulator @test \
+            -no-audio \
+            -no-boot-anim \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -memory 2048 \
+            -partition-size 2048 \
+            -cache-size 512 \
+            -no-snapshot \
+            -skip-adb-auth \
+            -no-snapshot-save \
+            -no-snapshot-load \
+            -accel off \
+            -verbose -show-kernel &
+          echo "Emulator started with PID $!"
+
+      # Robust emulator boot waiting
+      - name: Wait for emulator
+        timeout-minutes: 5
+        run: |
+          adb start-server
+          for i in {1..30}; do
+            if adb shell getprop sys.boot_completed | grep -q 1; then
+              echo "Emulator ready after $((i*2)) seconds"
+              adb shell settings put global window_animation_scale 0
+              adb shell settings put global transition_animation_scale 0
+              adb shell settings put global animator_duration_scale 0
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Emulator failed to boot"
+          exit 1
+
+      # Install APK with verification
       - name: Install APK
         run: |
-          # Wait for ADB to be fully ready
-          adb wait-for-device
-          # Install with retries in case of temporary failures
-          for i in {1..3}; do
-            if adb install -t ./app.apk; then
-              echo "Installation succeeded"
-              break
-            else
-              echo "Installation attempt $i failed, retrying..."
-              sleep 5
-            fi
-          done
+          adb install -t -g ./Krishivaas_Farmer.apk
+          adb shell pm list packages | grep -q com.krishivaas || (echo "APK not installed"; exit 1)
+          echo "APK verified and installed"
 
-      # Verify installation
-      - name: Verify Installation
+      # Run tests with proper working directory
+      - name: Run tests
+        working-directory: ./test
+        timeout-minutes: 15
         run: |
-          adb shell pm list packages | grep com.krishivaas || echo "Package not found"
+          npm ci --no-audit --no-fund
+          npm run test -- --maxWorkers=2
 
-      # Run tests and collect Allure results
-      - name: Run Tests
-        run: |
-          # Clear previous results
-          rm -rf ./results
-          mkdir -p ./results
-          
-          # Run your tests here (example command)
-          # Replace with your actual test command
-          adb shell am instrument -w -r -e debug false \
-            -e class com.krishivaas.TestSuite \
-            com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner \
-            | tee ./results/test-output.txt
-          
-          # Pull Allure results from device
-          adb pull /sdcard/Download/allure-results ./results || echo "No results found"
-
-      # Generate Allure report
-      - name: Generate Allure Report
+      # Collect results with better error handling
+      - name: Collect results
         if: always()
         run: |
-          allure generate ./results --clean -o ./report
-          
-      # Upload report as artifact
-      - uses: actions/upload-artifact@v4
+          mkdir -p test-results
+          adb pull /sdcard/Download/allure-results test-results/allure || echo "No Allure results found"
+          adb shell screencap -p /sdcard/screen.png
+          adb pull /sdcard/screen.png test-results/last-screen.png || echo "Failed to capture screen"
+          adb logcat -d > test-results/logcat.txt
+
+      # Upload artifacts
+      - uses: actions/upload-artifact@v3
+        if: always()
         with:
-          name: allure-report
-          path: ./report
-
-      # Terminate Emulator
-      - name: Terminate Emulator
-        if: always()
-        run: |
-          adb -s emulator-5554 emu kill || true
-          echo "Emulator terminated successfully"
+          name: test-results
+          path: test-results
