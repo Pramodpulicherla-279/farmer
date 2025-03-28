@@ -20,88 +20,125 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # Required to get emulator working
           emulator: true
+          api-level: 31
+          build-tools: 31.0.0
+          platform: android-31
+          ndk: none
+          cmake: none
+          arch: x86_64
 
-      # Add Android tools to PATH
+      # Configure environment
       - name: Set up Android environment
         run: |
           echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          mkdir -p ~/.android/avd
+          echo "ANDROID_AVD_HOME=$HOME/.android/avd" >> $GITHUB_ENV
 
-      # Create and start emulator
-      - name: Create and start emulator
+      # Emulator setup
+      - name: Set up emulator
         run: |
-          # Accept licenses first
           yes | sdkmanager --licenses
+          sdkmanager --install "system-images;android-31;google_apis;x86_64"
           
-          # Install system image
-          sdkmanager "platform-tools" "emulator"
-          sdkmanager "system-images;android-31;google_apis;x86_64"
-          
-          # Create AVD
-          echo "no" | avdmanager create avd \
+          echo "Creating AVD..."
+          avdmanager create avd \
             --name "test_avd" \
             --package "system-images;android-31;google_apis;x86_64" \
-            --device "pixel_6_pro" \
+            --device "pixel_4" \  # Changed to lighter device
             --force
           
-          # Start emulator
-          emulator -avd test_avd -no-window -no-audio -no-snapshot -camera-back none -camera-front none &
-          
-          # Wait for device
-          adb wait-for-device
-          echo "Emulator started successfully"
+          echo "AVD created:"
+          emulator -list-avds
 
-      # Wait for full boot
-      - name: Wait for emulator boot
+      # Start emulator with hardware acceleration
+      - name: Start emulator
         run: |
+          echo "Starting emulator..."
+          emulator -avd test_avd \
+            -no-window \
+            -no-audio \
+            -no-snapshot \
+            -camera-back none \
+            -camera-front none \
+            -memory 2048 \
+            -gpu swiftshader_indirect \
+            -accel on \
+            -no-boot-anim \
+            -partition-size 2048 &
+          
+          echo "Waiting for device..."
           adb wait-for-device
-          while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do
-            echo "Waiting for emulator to boot..."
-            sleep 5
+          
+          echo "Waiting for boot completion..."
+          for i in {1..60}; do
+            if adb shell getprop sys.boot_completed | grep -q "1"; then
+              echo "Emulator ready after $i seconds"
+              break
+            fi
+            sleep 1
           done
-          echo "Emulator is ready"
+          
+          # Disable animations for faster testing
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
 
-      # Rest of your steps...
+      # Node.js setup
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
+      # Install dependencies
       - name: Install dependencies
         run: |
-          npm install -g appium
+          npm install -g appium@next
           npm install
           npm install -g allure-commandline
 
-      # Install APK
+      # APK installation with retry
       - name: Install APK
         run: |
-          adb install -t ./Krishivaas_Farmer.apk
+          for i in {1..3}; do
+            if adb install -t -g ./Krishivaas_Farmer.apk; then
+              echo "APK installed successfully"
+              break
+            else
+              echo "Attempt $i failed, retrying..."
+              sleep 5
+            fi
+          done
           adb shell pm list packages | grep com.krishivaas
 
-      # Run WebdriverIO tests
+      # Test execution
       - name: Run Tests
         env:
           APPIUM_PORT: 4723
         run: |
-          # Start Appium server in background
-          nohup appium --log-level info --relaxed-security > appium.log 2>&1 &
+          # Start Appium with more detailed logging
+          nohup appium \
+            --log-level debug \
+            --relaxed-security \
+            --log-timestamp \
+            --local-timezone > appium.log 2>&1 &
           
           # Wait for Appium to start
-          sleep 10
+          sleep 15
           
-          # Run tests
-          npx wdio run wdio.conf.js || true
+          # Run tests with more logging
+          npx wdio run wdio.conf.js --logLevel=debug || true
           
-          # Save logs
+          # Save all relevant logs
           mkdir -p test-results
           cp appium.log test-results/
           adb logcat -d > test-results/logcat.log
+          adb bugreport test-results/bugreport.zip
 
-      # Process test results
+      # Results processing
       - name: Process results
         if: always()
         run: |
@@ -111,23 +148,28 @@ jobs:
           # Check for test failures
           if grep -q "failed" wdio.log; then
             echo "::warning::Some tests failed"
+            echo "::group::Test Failures"
+            grep -A 5 "failed" wdio.log
+            echo "::endgroup::"
           fi
 
-      # Upload artifacts
+      # Artifacts upload
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}
           path: |
             allure-report/
             test-results/
             screenshots/
             wdio.log
+            appium.log
 
-      # Clean up
-      - name: Stop emulator
+      # Cleanup
+      - name: Clean up
         if: always()
         run: |
-          adb emu kill
-          pkill -f "emulator"
+          adb emu kill || true
+          pkill -f "emulator" || true
+          pkill -f "appium" || true
