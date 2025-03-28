@@ -24,7 +24,7 @@ jobs:
           api-level: 31
           build-tools: 31.0.0
           platform: android-31
-          cmdline-tools: '8.0'  # Specific version to avoid XML issues
+          cmdline-tools: '8.0'
           ndk: none
           cmake: none
 
@@ -37,59 +37,49 @@ jobs:
           mkdir -p ~/.android/avd
           echo "ANDROID_AVD_HOME=$HOME/.android/avd" >> $GITHUB_ENV
 
-      # Clear SDK cache to prevent XML version conflicts
-      - name: Clean SDK cache
-        run: |
-          sdkmanager --uninstall "cmdline-tools;latest" || true
-          sdkmanager --install "cmdline-tools;8.0"
-
-      # Install system image with retries
+      # Install ARM system image instead of x86_64 for better compatibility
       - name: Install system image
         run: |
           yes | sdkmanager --licenses
-          for i in {1..3}; do
-            if sdkmanager "platform-tools" "emulator" "system-images;android-31;google_apis;x86_64"; then
-              break
-            fi
-            echo "Attempt $i failed, retrying..."
-            sleep 10
-          done
+          sdkmanager "platform-tools" "emulator"
+          sdkmanager "system-images;android-31;google_apis;arm64-v8a"  # Changed to ARM
 
-      # Create AVD with proper formatting
+      # Create AVD with ARM image
       - name: Create AVD
         run: |
-          # Get device list and select pixel_4 explicitly
           device_id=$(avdmanager list device | grep -A 5 "pixel_4" | grep "id:" | awk '{print $2}' | head -1)
           
-          echo "Creating AVD with device ID: $device_id"
           avdmanager create avd \
             --name test_avd \
-            --package "system-images;android-31;google_apis;x86_64" \
+            --package "system-images;android-31;google_apis;arm64-v8a" \
             --device "$device_id" \
             --force
           
-          # Verify AVD creation
-          emulator -list-avds
-          ls -la ~/.android/avd/
+          # Configure AVD to use software rendering
+          echo "hw.gpu.mode=swiftshader" >> ~/.android/avd/test_avd.avd/config.ini
+          echo "hw.cpu.arch=arm64" >> ~/.android/avd/test_avd.avd/config.ini
 
-      # Start emulator with hardware acceleration
+      # Start emulator with software rendering
       - name: Start emulator
+        timeout-minutes: 10
         run: |
-          echo "Starting emulator..."
+          echo "Starting emulator with software rendering..."
           emulator -avd test_avd \
             -no-window \
             -no-audio \
             -no-snapshot \
             -memory 2048 \
-            -gpu swiftshader_indirect \
+            -gpu swiftshader \
             -no-boot-anim \
-            -partition-size 2048 &
+            -partition-size 2048 \
+            -verbose \
+            -qemu -cpu cortex-a57 &
           
-          # Wait for device with timeout
-          timeout 300 adb wait-for-device
+          # Wait for device
+          adb wait-for-device
           
-          # Check boot completion
-          for i in {1..60}; do
+          # Wait for boot completion
+          for i in {1..120}; do  # Increased timeout for ARM emulation
             if adb shell getprop sys.boot_completed | grep -q "1"; then
               echo "Emulator ready after $i seconds"
               break
@@ -97,7 +87,7 @@ jobs:
             sleep 2
           done
 
-      # Rest of your workflow steps...
+      # Continue with the rest of your workflow...
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
