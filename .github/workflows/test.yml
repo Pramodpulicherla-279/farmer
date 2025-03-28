@@ -1,5 +1,5 @@
 name: Android APK Testing
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test:
@@ -9,82 +9,104 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Proper Android SDK setup with ADB
+      # Set up Java and Android SDK
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        
 
-      # Start ADB server
-      - name: Start ADB Server
-        run: adb start-server
+      # Create and start emulator
+      - name: Create and start emulator
+        run: |
+          echo "y" | sdkmanager "platform-tools" "emulator"
+          echo "y" | sdkmanager "system-images;android-31;google_apis;x86_64"
+          echo "no" | avdmanager create avd \
+            --name "test_avd" \
+            --package "system-images;android-31;google_apis;x86_64" \
+            --device "pixel_6_pro" \
+            --force
+          emulator -avd test_avd -no-window -no-audio -no-snapshot -camera-back none -camera-front none &
+          adb wait-for-device
+          echo "Emulator started successfully"
 
-      # Allure setup
+      # Wait for emulator to be fully booted
+      - name: Wait for emulator boot
+        run: |
+          adb wait-for-device
+          while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do
+            echo "Waiting for emulator to boot..."
+            sleep 5
+          done
+          echo "Emulator is ready"
+
+      # Set up Node.js and dependencies
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
-      - name: Install Allure
-        run: npm install -g allure-commandline
 
-      # Prepare APK
-      - name: Prepare APK
+      - name: Install dependencies
         run: |
-          cp "./Krishivaas_Farmer.apk" ./app.apk
+          npm install -g appium
+          npm install
+          npm install -g allure-commandline
 
-      # Install APK with retry logic
+      # Install APK
       - name: Install APK
         run: |
-          # Wait for ADB to be fully ready
-          adb wait-for-device
-          # Install with retries in case of temporary failures
-          for i in {1..3}; do
-            if adb install -t ./app.apk; then
-              echo "Installation succeeded"
-              break
-            else
-              echo "Installation attempt $i failed, retrying..."
-              sleep 5
-            fi
-          done
+          adb install -t ./Krishivaas_Farmer.apk
+          adb shell pm list packages | grep com.krishivaas
 
-      # Verify installation
-      - name: Verify Installation
-        run: |
-          adb shell pm list packages | grep com.krishivaas || echo "Package not found"
-
-      # Run tests and collect Allure results
+      # Run WebdriverIO tests
       - name: Run Tests
+        env:
+          APPIUM_PORT: 4723
         run: |
-          # Clear previous results
-          rm -rf ./results
-          mkdir -p ./results
+          # Start Appium server in background
+          nohup appium --log-level info --relaxed-security > appium.log 2>&1 &
           
-          # Run your tests here (example command)
-          # Replace with your actual test command
-          adb shell am instrument -w -r -e debug false \
-            -e class com.krishivaas.TestSuite \
-            com.krishivaas.test/androidx.test.runner.AndroidJUnitRunner \
-            | tee ./results/test-output.txt
+          # Wait for Appium to start
+          sleep 10
           
-          # Pull Allure results from device
-          adb pull /sdcard/Download/allure-results ./results || echo "No results found"
+          # Run tests
+          npx wdio run wdio.conf.js || true
+          
+          # Save logs
+          mkdir -p test-results
+          cp appium.log test-results/
+          adb logcat -d > test-results/logcat.log
 
-      # Generate Allure report
-      - name: Generate Allure Report
+      # Process test results
+      - name: Process results
         if: always()
         run: |
-          allure generate ./results --clean -o ./report
+          # Generate Allure report
+          allure generate allure-results --clean -o allure-report
           
-      # Upload report as artifact
-      - uses: actions/upload-artifact@v4
+          # Check for test failures
+          if grep -q "failed" wdio.log; then
+            echo "::warning::Some tests failed"
+          fi
+
+      # Upload artifacts
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: allure-report
-          path: ./report
+          name: test-results
+          path: |
+            allure-report/
+            test-results/
+            screenshots/
+            wdio.log
 
-      # Terminate Emulator
-      - name: Terminate Emulator
+      # Clean up
+      - name: Stop emulator
         if: always()
         run: |
-          adb -s emulator-5554 emu kill || true
-          echo "Emulator terminated successfully"
+          adb emu kill
+          pkill -f "emulator"
