@@ -9,31 +9,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Java and Android SDK
+      # Set up Java
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # Proper Android SDK setup
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Required to get emulator working
+          emulator: true
+
+      # Add Android tools to PATH
+      - name: Set up Android environment
+        run: |
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
       # Create and start emulator
       - name: Create and start emulator
         run: |
-          echo "y" | sdkmanager "platform-tools" "emulator"
-          echo "y" | sdkmanager "system-images;android-31;google_apis;x86_64"
+          # Accept licenses first
+          yes | sdkmanager --licenses
+          
+          # Install system image
+          sdkmanager "platform-tools" "emulator"
+          sdkmanager "system-images;android-31;google_apis;x86_64"
+          
+          # Create AVD
           echo "no" | avdmanager create avd \
             --name "test_avd" \
             --package "system-images;android-31;google_apis;x86_64" \
             --device "pixel_6_pro" \
             --force
+          
+          # Start emulator
           emulator -avd test_avd -no-window -no-audio -no-snapshot -camera-back none -camera-front none &
+          
+          # Wait for device
           adb wait-for-device
           echo "Emulator started successfully"
 
-      # Wait for emulator to be fully booted
+      # Wait for full boot
       - name: Wait for emulator boot
         run: |
           adb wait-for-device
@@ -43,7 +64,7 @@ jobs:
           done
           echo "Emulator is ready"
 
-      # Set up Node.js and dependencies
+      # Rest of your steps...
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
