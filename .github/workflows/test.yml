@@ -4,19 +4,20 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45  # Increased timeout for emulator setup
 
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Java
+      # Set up Java with caching
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      # Proper Android SDK setup
+      # Android SDK setup with specific versions
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -27,149 +28,206 @@ jobs:
           ndk: none
           cmake: none
           arch: x86_64
+          cmdline-tools: '8.0'  # Specific version to avoid XML issues
 
-      # Configure environment
+      # Configure environment with proper paths
       - name: Set up Android environment
         run: |
           echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/8.0/bin" >> $GITHUB_PATH
           mkdir -p ~/.android/avd
           echo "ANDROID_AVD_HOME=$HOME/.android/avd" >> $GITHUB_ENV
 
-      # Emulator setup
+          # Verify tools
+          adb --version
+          emulator -version
+
+      # Emulator setup with retries
       - name: Set up emulator
+        timeout-minutes: 15
         run: |
           yes | sdkmanager --licenses
-          sdkmanager --install "system-images;android-31;google_apis;x86_64"
           
+          # Install packages with retries
+          for i in {1..3}; do
+            if sdkmanager "platform-tools" "emulator" "system-images;android-31;google_apis;x86_64"; then
+              break
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 10
+          done
+
+          # Verify installation
+          sdkmanager --list_installed
+
+      # AVD creation with validation
+      - name: Create AVD
+        run: |
           echo "Creating AVD..."
           avdmanager create avd \
             --name "test_avd" \
             --package "system-images;android-31;google_apis;x86_64" \
-            --device "pixel_4" \  # Changed to lighter device
+            --device "pixel_4" \
             --force
           
-          echo "AVD created:"
-          emulator -list-avds
+          # Validate AVD files
+          ls -la ~/.android/avd/
+          cat ~/.android/avd/test_avd.ini
 
-      # Start emulator with hardware acceleration
+      # Start emulator with improved stability
       - name: Start emulator
+        timeout-minutes: 10
         run: |
           echo "Starting emulator..."
           emulator -avd test_avd \
             -no-window \
             -no-audio \
             -no-snapshot \
-            -camera-back none \
-            -camera-front none \
             -memory 2048 \
             -gpu swiftshader_indirect \
-            -accel on \
             -no-boot-anim \
-            -partition-size 2048 &
+            -partition-size 2048 \
+            -writable-system \
+            -verbose \
+            -qemu -enable-kvm &
           
-          echo "Waiting for device..."
-          adb wait-for-device
+          # Wait for device with timeout
+          timeout 300 adb wait-for-device  # 5 minute timeout
           
-          echo "Waiting for boot completion..."
+          # Check boot completion
           for i in {1..60}; do
             if adb shell getprop sys.boot_completed | grep -q "1"; then
               echo "Emulator ready after $i seconds"
+              # Additional readiness checks
+              adb shell input keyevent 82  # Wake up device
               break
             fi
-            sleep 1
+            sleep 2
           done
           
-          # Disable animations for faster testing
+          # Performance optimizations
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
+          adb shell settings put global hidden_api_policy_pre_p_apps 1
+          adb shell settings put global hidden_api_policy_p_apps 1
 
-      # Node.js setup
+      # Node.js setup with cache
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # Install dependencies
+      # Install dependencies with cache
       - name: Install dependencies
         run: |
           npm install -g appium@next
-          npm install
+          npm ci  # Clean install for consistency
           npm install -g allure-commandline
 
-      # APK installation with retry
+      # APK installation with better error handling
       - name: Install APK
+        timeout-minutes: 5
         run: |
-          for i in {1..3}; do
+          # Uninstall if exists
+          adb uninstall com.krishivaas || true
+          
+          # Install with retries and verification
+          for i in {1..5}; do
+            echo "Install attempt $i"
             if adb install -t -g ./Krishivaas_Farmer.apk; then
-              echo "APK installed successfully"
-              break
-            else
-              echo "Attempt $i failed, retrying..."
-              sleep 5
+              echo "Verifying installation..."
+              if adb shell pm list packages | grep -q com.krishivaas; then
+                echo "APK installed and verified"
+                break
+              fi
             fi
+            sleep 10
           done
-          adb shell pm list packages | grep com.krishivaas
 
-      # Test execution
+      # Test execution with improved logging
       - name: Run Tests
         env:
           APPIUM_PORT: 4723
+          DEBUG: 'wdio:*'
+        timeout-minutes: 20
         run: |
-          # Start Appium with more detailed logging
+          # Start Appium with better logging
           nohup appium \
-            --log-level debug \
+            --log-level info \
             --relaxed-security \
-            --log-timestamp \
-            --local-timezone > appium.log 2>&1 &
+            --session-override \
+            --allow-insecure chromedriver_autodownload \
+            >> appium.log 2>&1 &
           
-          # Wait for Appium to start
-          sleep 15
+          # Wait for Appium
+          for i in {1..10}; do
+            if grep -q "Appium REST http interface listener started" appium.log; then
+              break
+            fi
+            sleep 3
+          done
           
-          # Run tests with more logging
-          npx wdio run wdio.conf.js --logLevel=debug || true
+          # Run tests with timestamp
+          echo "Start time: $(date)"
+          npx wdio run wdio.conf.js --logLevel=info || true
+          echo "End time: $(date)"
           
-          # Save all relevant logs
+          # Collect logs
           mkdir -p test-results
           cp appium.log test-results/
           adb logcat -d > test-results/logcat.log
-          adb bugreport test-results/bugreport.zip
+          adb bugreport test-results/bugreport.zip || true
+          
+          # Save screenshots if any
+          if [ -d "./screenshots" ]; then
+            cp -r ./screenshots test-results/
+          fi
 
-      # Results processing
+      # Results processing with artifact retention
       - name: Process results
         if: always()
         run: |
           # Generate Allure report
           allure generate allure-results --clean -o allure-report
           
-          # Check for test failures
+          # Enhanced failure reporting
           if grep -q "failed" wdio.log; then
-            echo "::warning::Some tests failed"
-            echo "::group::Test Failures"
-            grep -A 5 "failed" wdio.log
+            echo "::error::Test failures detected"
+            echo "::group::Test Failure Details"
+            grep -A 10 -B 5 "failed" wdio.log
             echo "::endgroup::"
+            
+            # Save failed test details
+            mkdir -p test-results/failures
+            grep -A 5 "failed" wdio.log > test-results/failures/summary.log
           fi
 
-      # Artifacts upload
+      # Artifacts upload with retention
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.run_id }}
+          name: android-test-results-${{ github.run_number }}
           path: |
             allure-report/
             test-results/
-            screenshots/
             wdio.log
-            appium.log
+          retention-days: 7
 
-      # Cleanup
+      # Cleanup with better process handling
       - name: Clean up
         if: always()
         run: |
+          # Save emulator state before killing
+          adb emu avd snapshot save ci-clean-state || true
+          
+          # Stop processes
           adb emu kill || true
           pkill -f "emulator" || true
           pkill -f "appium" || true
+          
+          # Clean up processes
+          killall qemu-system-x86_64 || true
